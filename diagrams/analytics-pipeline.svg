@@ -1,0 +1,83 @@
+<svg viewBox="0 0 880 480" width="880" height="480" xmlns="http://www.w3.org/2000/svg" font-family="system-ui,-apple-system,sans-serif">
+<defs>
+  <marker id="arr" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto">
+    <polygon points="0 0,9 3.5,0 7" fill="#9CA3AF"/></marker>
+  <marker id="arr-gr" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto">
+    <polygon points="0 0,9 3.5,0 7" fill="#10B981"/></marker>
+  <marker id="arr-re" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto">
+    <polygon points="0 0,9 3.5,0 7" fill="#EF4444"/></marker>
+  <marker id="arr-bl" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto">
+    <polygon points="0 0,9 3.5,0 7" fill="#3B82F6"/></marker>
+  <marker id="arr-or" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto">
+    <polygon points="0 0,9 3.5,0 7" fill="#F97316"/></marker>
+  <marker id="arr-pu" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto">
+    <polygon points="0 0,9 3.5,0 7" fill="#8B5CF6"/></marker>
+</defs>
+
+  <rect x="10" y="10" width="880" height="480" rx="16" fill="#FAFAFA" stroke="#E5E7EB" stroke-width="1.5"/>
+
+  <!-- Sources -->
+  <rect x="20" y="100" width="140" height="90" rx="10" fill="#EFF6FF" stroke="#93C5FD" stroke-width="1.5"/>
+  <rect x="35" y="113" width="40" height="14" rx="3" fill="#DBEAFE" stroke="#3B82F6" stroke-width="1.5"/>
+    <circle cx="65" cy="120" r="3" fill="#3B82F6"/>
+    <rect x="35" y="131" width="40" height="14" rx="3" fill="#DBEAFE" stroke="#3B82F6" stroke-width="1.5"/>
+    <circle cx="65" cy="138" r="3" fill="#3B82F6"/>
+  <text x="110" y="135" font-size="12" font-weight="700" fill="#1E40AF" text-anchor="start" dominant-baseline="middle">Read Service</text>
+  <text x="110" y="152" font-size="10" font-weight="400" fill="#3B82F6" text-anchor="start" dominant-baseline="middle">Redirect Events</text>
+
+  <rect x="20" y="220" width="140" height="90" rx="10" fill="#F0FDF4" stroke="#86EFAC" stroke-width="1.5"/>
+  <text x="90" y="258" font-size="18" font-weight="400" fill="#10B981" text-anchor="middle" dominant-baseline="middle">✍</text>
+  <text x="90" y="276" font-size="12" font-weight="700" fill="#065F46" text-anchor="middle" dominant-baseline="middle">Write Service</text>
+  <text x="90" y="292" font-size="10" font-weight="400" fill="#10B981" text-anchor="middle" dominant-baseline="middle">Creation Events</text>
+
+  <!-- Kafka -->
+  <rect x="220" y="55" width="180" height="290" rx="14" fill="#FFF7ED" stroke="#F97316" stroke-width="1.5"/>
+  <text x="310" y="88" font-size="11" font-weight="700" fill="#9A3412" text-anchor="middle">Message Broker</text>
+  <text x="310" y="130" font-size="22" text-anchor="middle">📨</text>
+  <text x="310" y="158" font-size="14" font-weight="700" fill="#C2410C" text-anchor="middle">Apache Kafka</text>
+  <rect x="240" y="172" width="140" height="30" rx="6" fill="#FFFFFF" stroke="#FED7AA" stroke-width="1.5"/>
+  <text x="310" y="187" font-size="11" fill="#9A3412" text-anchor="middle">Topic: click-events</text>
+  <rect x="240" y="210" width="140" height="30" rx="6" fill="#FFFFFF" stroke="#FED7AA" stroke-width="1.5"/>
+  <text x="310" y="225" font-size="11" fill="#9A3412" text-anchor="middle">Topic: link-created</text>
+  <text x="310" y="264" font-size="12" font-weight="700" fill="#EA580C" text-anchor="middle">Absorbs 38,500 RPS</text>
+
+  <!-- Flink -->
+  <rect x="460" y="55" width="170" height="290" rx="14" fill="#FDF4FF" stroke="#E879F9" stroke-width="1.5"/>
+  <text x="545" y="88" font-size="11" font-weight="700" fill="#86198F" text-anchor="middle">Stream Processing</text>
+  <text x="545" y="138" font-size="22" text-anchor="middle">〰</text>
+  <text x="545" y="166" font-size="14" font-weight="700" fill="#A21CAF" text-anchor="middle">Apache Flink</text>
+  <rect x="478" y="180" width="134" height="70" rx="8" fill="#FFFFFF" stroke="#F0ABFC" stroke-width="1.5"/>
+  <text x="545" y="210" font-size="12" font-weight="600" fill="#86198F" text-anchor="middle">Tumbling Windows</text>
+  <text x="545" y="230" font-size="10" fill="#C026D3" text-anchor="middle">Aggregates clicks per</text>
+  <text x="545" y="244" font-size="10" fill="#C026D3" text-anchor="middle">minute/hour</text>
+
+  <!-- ClickHouse -->
+  <rect x="692" y="55" width="170" height="290" rx="14" fill="#FEFCE8" stroke="#EAB308" stroke-width="1.5"/>
+  <text x="777" y="88" font-size="11" font-weight="700" fill="#713F12" text-anchor="middle">OLAP Data Warehouse</text>
+  <text x="777" y="122" font-size="13" font-weight="700" fill="#854D0E" text-anchor="middle">ClickHouse</text>
+  <rect x="706" y="135" width="148" height="48" rx="6" fill="#FFFFFF" stroke="#FDE68A" stroke-width="1.5"/>
+  <text x="780" y="155" font-size="11" font-weight="600" fill="#713F12" text-anchor="middle">Raw Events Table</text>
+  <text x="780" y="171" font-size="9" fill="#92400E" text-anchor="middle">Ingests pre-aggregated stream</text>
+  <text x="777" y="202" font-size="10" font-weight="700" fill="#D97706" text-anchor="middle">▼  TRIGGER</text>
+  <rect x="706" y="210" width="148" height="54" rx="6" fill="#FFFDE7" stroke="#EAB308" stroke-width="1.5"/>
+  <text x="780" y="232" font-size="11" font-weight="600" fill="#713F12" text-anchor="middle">Materialized View</text>
+  <text x="780" y="248" font-size="9" fill="#92400E" text-anchor="middle">SummingMergeTree Engine</text>
+  <text x="777" y="276" font-size="10" fill="#D97706" text-anchor="middle">▼</text>
+  <rect x="706" y="282" width="148" height="48" rx="6" fill="#F0FDF4" stroke="#86EFAC" stroke-width="1.5"/>
+  <text x="780" y="302" font-size="11" font-weight="600" fill="#065F46" text-anchor="middle">Aggregated Stats Table</text>
+  <text x="780" y="318" font-size="9" fill="#15803D" text-anchor="middle">Sub-100ms dashboard queries</text>
+
+  <!-- Dashboard -->
+  <rect x="280" y="390" width="320" height="68" rx="10" fill="#F9FAFB" stroke="#D1D5DB" stroke-width="1.5"/>
+  <text x="440" y="416" font-size="13" font-weight="700" fill="#374151" text-anchor="middle">📊  Analytics Dashboard</text>
+  <text x="440" y="440" font-size="11" fill="#6B7280" text-anchor="middle">GET /api/v1/analytics</text>
+
+  <!-- Arrows -->
+  <line x1="160" y1="145" x2="218" y2="200" stroke="#F97316" stroke-width="1.5" marker-end="url(#arr-or)"/>
+  <line x1="160" y1="265" x2="218" y2="240" stroke="#F97316" stroke-width="1.5" marker-end="url(#arr-or)"/>
+  <line x1="400" y1="200" x2="458" y2="200" stroke="#9CA3AF" stroke-width="1.5" marker-end="url(#arr)"/>
+  <line x1="630" y1="200" x2="690" y2="200" stroke="#9CA3AF" stroke-width="1.5" marker-end="url(#arr)"/>
+  <line x1="545" y1="345" x2="545" y2="389" stroke="#D1D5DB" stroke-width="1.5" marker-end="url(#arr)"/>
+  <line x1="777" y1="345" x2="620" y2="389" stroke="#D1D5DB" stroke-width="1.5" marker-end="url(#arr)"/>
+
+</svg>

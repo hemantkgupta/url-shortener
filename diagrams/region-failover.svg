@@ -1,0 +1,55 @@
+<svg viewBox="0 0 780 520" width="780" height="520"
+  xmlns="http://www.w3.org/2000/svg"
+  font-family="system-ui, -apple-system, sans-serif">
+  <defs>
+    <marker id="ah" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+      <polygon points="0 0, 8 3, 0 6" fill="#9CA3AF"/>
+    </marker>
+    <marker id="ah-g" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+      <polygon points="0 0, 8 3, 0 6" fill="#10B981"/>
+    </marker>
+    <marker id="ah-r" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+      <polygon points="0 0, 8 3, 0 6" fill="#EF4444"/>
+    </marker>
+    <marker id="ah-b" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+      <polygon points="0 0, 8 3, 0 6" fill="#3B82F6"/>
+    </marker>
+    <marker id="ah-p" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+      <polygon points="0 0, 8 3, 0 6" fill="#8B5CF6"/>
+    </marker>
+    <marker id="ah-o" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+      <polygon points="0 0, 8 3, 0 6" fill="#F97316"/>
+    </marker>
+  </defs>
+<rect x="10" y="10" width="760" height="500" rx="16" fill="#FFFFFF" stroke="#E5E7EB" stroke-width="1.5"/>
+<rect x="240" y="22" width="300" height="88" rx="12" fill="#EEF2FF" stroke="#818CF8" stroke-width="1.5"/>
+<text x="390" y="58" font-size="14" font-weight="bold" fill="#3730A3" text-anchor="middle" dominant-baseline="middle">Anycast Global LB</text>
+<rect x="262" y="78" width="256" height="22" rx="8" fill="#C7D2FE" stroke="#A5B4FC" stroke-width="1"/>
+<text x="390" y="89" font-size="10" font-weight="bold" fill="#3730A3" text-anchor="middle" dominant-baseline="middle">Traffic rerouted dynamically</text>
+<line x1="315" y1="110" x2="198" y2="202" stroke="#EF4444" stroke-width="2" stroke-dasharray="6,4"/>
+<text x="236" y="170" font-size="16" fill="#EF4444" text-anchor="middle" dominant-baseline="middle">&#x2715;</text>
+<line x1="465" y1="110" x2="568" y2="200" stroke="#10B981" stroke-width="2.5" marker-end="url(#ah-g)"/>
+<rect x="535" y="186" width="100" height="20" rx="10" fill="#10B981"/><text x="585" y="196" font-size="10" font-weight="bold" fill="#FFFFFF" text-anchor="middle" dominant-baseline="middle">NEW LEADER</text>
+<rect x="22" y="208" width="320" height="280" rx="14" fill="#FFF5F5" stroke="#FCA5A5" stroke-width="1.5"/>
+<text x="182" y="238" font-size="12" font-weight="bold" fill="#B91C1C" text-anchor="middle" dominant-baseline="middle">US-EAST4 (PRIMARY)</text>
+<line x1="32" y1="250" x2="332" y2="250" stroke="#FCA5A5" stroke-width="1"/>
+<rect x="102" y="298" width="36" height="12" rx="3" fill="#FEE2E2" stroke="#FCA5A5" stroke-width="1.5"/><circle cx="128" cy="304" r="2.5" fill="#FCA5A5"/><rect x="102" y="314" width="36" height="12" rx="3" fill="#FEE2E2" stroke="#FCA5A5" stroke-width="1.5"/><circle cx="128" cy="320" r="2.5" fill="#FCA5A5"/>
+<text x="210" y="308" font-size="11" font-weight="normal" fill="#9CA3AF" text-anchor="middle" dominant-baseline="middle">Compute + DB Shards</text>
+<text x="210" y="326" font-size="11" font-weight="normal" fill="#9CA3AF" text-anchor="middle" dominant-baseline="middle">unreachable</text>
+<text x="182" y="422" font-size="36" font-weight="900" fill="#FCA5A5" text-anchor="middle" opacity="0.45">OFFLINE</text>
+<rect x="428" y="208" width="330" height="280" rx="14" fill="#F0FDF4" stroke="#10B981" stroke-width="2"/>
+<text x="593" y="238" font-size="12" font-weight="bold" fill="#065F46" text-anchor="middle" dominant-baseline="middle">US-WEST1 (SECONDARY)</text>
+<line x1="438" y1="250" x2="748" y2="250" stroke="#86EFAC" stroke-width="1"/>
+<rect x="446" y="260" width="294" height="88" rx="10" fill="#FFFFFF" stroke="#D1D5DB" stroke-width="1.5"/>
+<rect x="456" y="278" width="36" height="12" rx="3" fill="#F3F4F6" stroke="#9CA3AF" stroke-width="1.5"/><circle cx="482" cy="284" r="2.5" fill="#9CA3AF"/><rect x="456" y="294" width="36" height="12" rx="3" fill="#F3F4F6" stroke="#9CA3AF" stroke-width="1.5"/><circle cx="482" cy="300" r="2.5" fill="#9CA3AF"/>
+<text x="593" y="290" font-size="12" font-weight="bold" fill="#374151" text-anchor="middle" dominant-baseline="middle">Compute Cluster</text>
+<text x="593" y="308" font-size="11" font-weight="normal" fill="#10B981" text-anchor="middle" dominant-baseline="middle">Auto-scaled up</text>
+<rect x="508" y="318" width="162" height="22" rx="6" fill="#DCFCE7" stroke="#86EFAC" stroke-width="1"/>
+<text x="589" y="329" font-size="10" font-weight="bold" fill="#15803D" text-anchor="middle" dominant-baseline="middle">Capacity Increased</text>
+<rect x="446" y="362" width="294" height="106" rx="10" fill="#FFFFFF" stroke="#86EFAC" stroke-width="2"/>
+<ellipse cx="478" cy="392" rx="20" ry="7" fill="#DCFCE7" stroke="#10B981" stroke-width="1.5"/><rect x="458" y="392" width="40" height="24" fill="#DCFCE7" stroke="#10B981" stroke-width="1.5"/><ellipse cx="478" cy="416" rx="20" ry="7" fill="#DCFCE7" stroke="#10B981" stroke-width="1.5"/>
+<text x="593" y="398" font-size="12" font-weight="bold" fill="#374151" text-anchor="middle" dominant-baseline="middle">Spanner Replica</text>
+<text x="593" y="416" font-size="11" font-weight="normal" fill="#10B981" text-anchor="middle" dominant-baseline="middle">Paxos promoted to Leader</text>
+<rect x="512" y="430" width="158" height="22" rx="6" fill="#DCFCE7" stroke="#86EFAC" stroke-width="1"/>
+<text x="591" y="441" font-size="10" font-weight="bold" fill="#15803D" text-anchor="middle" dominant-baseline="middle">RTO: ~60 seconds</text>
+</svg>

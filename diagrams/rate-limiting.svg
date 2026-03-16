@@ -1,0 +1,74 @@
+<svg viewBox="0 0 880 370" width="880" height="370" xmlns="http://www.w3.org/2000/svg" font-family="system-ui,-apple-system,sans-serif">
+<defs>
+  <marker id="arr" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto">
+    <polygon points="0 0,9 3.5,0 7" fill="#9CA3AF"/></marker>
+  <marker id="arr-gr" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto">
+    <polygon points="0 0,9 3.5,0 7" fill="#10B981"/></marker>
+  <marker id="arr-re" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto">
+    <polygon points="0 0,9 3.5,0 7" fill="#EF4444"/></marker>
+  <marker id="arr-bl" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto">
+    <polygon points="0 0,9 3.5,0 7" fill="#3B82F6"/></marker>
+  <marker id="arr-or" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto">
+    <polygon points="0 0,9 3.5,0 7" fill="#F97316"/></marker>
+  <marker id="arr-pu" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto">
+    <polygon points="0 0,9 3.5,0 7" fill="#8B5CF6"/></marker>
+</defs>
+
+  <rect x="10" y="10" width="880" height="360" rx="16" fill="#FFFFFF" stroke="#E5E7EB" stroke-width="1.5"/>
+
+  <!-- Botnet -->
+  <rect x="30" y="60" width="155" height="100" rx="12" fill="#FEF2F2" stroke="#FCA5A5" stroke-width="1.5"/>
+  <text x="107" y="100" font-size="20" font-weight="400" fill="#EF4444" text-anchor="middle" dominant-baseline="middle">🤖</text>
+  <text x="107" y="120" font-size="13" font-weight="700" fill="#B91C1C" text-anchor="middle" dominant-baseline="middle">Botnet</text>
+  <rect x="52" y="146" width="110" height="20" rx="10" fill="#FEE2E2"/>
+    <text x="107" y="156" font-size="10" font-weight="700" fill="#EF4444" text-anchor="middle" dominant-baseline="middle">Surge Traffic</text>
+
+  <!-- Legitimate -->
+  <rect x="30" y="200" width="155" height="100" rx="12" fill="#F0FDF4" stroke="#86EFAC" stroke-width="1.5"/>
+  <text x="107" y="235" font-size="20" font-weight="400" fill="#10B981" text-anchor="middle" dominant-baseline="middle">👤</text>
+  <text x="107" y="255" font-size="13" font-weight="700" fill="#065F46" text-anchor="middle" dominant-baseline="middle">Legitimate</text>
+  <rect x="52" y="281" width="110" height="20" rx="10" fill="#DCFCE7"/>
+    <text x="107" y="291" font-size="10" font-weight="700" fill="#16A34A" text-anchor="middle" dominant-baseline="middle">Normal Traffic</text>
+
+  <!-- Rate Limit Service container -->
+  <rect x="230" y="40" width="370" height="300" rx="14" fill="#F5F3FF" stroke="#8B5CF6" stroke-width="1.5"/>
+  <text x="415" y="65" font-size="11" font-weight="700" fill="#6D28D9" text-anchor="middle" dominant-baseline="middle">RATE LIMIT SERVICE</text>
+
+  <!-- Redis inside -->
+  <rect x="258" y="82" width="314" height="110" rx="10" fill="#FFFFFF" stroke="#DDD6FE" stroke-width="1.5"/>
+  <text x="415" y="116" font-size="13" font-weight="700" fill="#5B21B6" text-anchor="middle" dominant-baseline="middle">Redis Cluster</text>
+  <text x="415" y="134" font-size="11" font-weight="400" fill="#7C3AED" text-anchor="middle" dominant-baseline="middle">State checked in &lt; 1ms</text>
+
+  <!-- gRPC label -->
+  <line x1="415" y1="192" x2="415" y2="220" stroke="#8B5CF6" stroke-width="1.5" stroke-dasharray="4,3"/>
+  <text x="415" y="207" font-size="10" font-weight="600" fill="#7C3AED" text-anchor="middle" dominant-baseline="middle">gRPC</text>
+
+  <!-- Envoy inside -->
+  <rect x="300" y="220" width="230" height="80" rx="10" fill="#FFFFFF" stroke="#DDD6FE" stroke-width="1.5"/>
+  <path d="M340 238 L356 246 L356 262 Q356 276 340 282 Q324 276 324 262 L324 246 Z" fill="#EDE9FE" stroke="#7C3AED" stroke-width="1.5"/>
+  <text x="400" y="255" font-size="13" font-weight="700" fill="#5B21B6" text-anchor="start" dominant-baseline="middle">Envoy Proxy</text>
+
+  <!-- Outcome badges -->
+  <rect x="265" y="306" width="110" height="20" rx="10" fill="#FEE2E2"/>
+    <text x="320" y="316" font-size="10" font-weight="700" fill="#EF4444" text-anchor="middle" dominant-baseline="middle">429 Blocked</text>
+  <rect x="466" y="306" width="80" height="20" rx="10" fill="#DCFCE7"/>
+    <text x="506" y="316" font-size="10" font-weight="700" fill="#15803D" text-anchor="middle" dominant-baseline="middle">Passed</text>
+  <line x1="504" y1="309" x2="600" y2="290" stroke="#10B981" stroke-width="2" marker-end="url(#arr-gr)"/>
+
+  <!-- Protected Backend -->
+  <rect x="640" y="195" width="200" height="150" rx="12" fill="#F9FAFB" stroke="#D1D5DB" stroke-width="1.5"/>
+  <rect x="670" y="226" width="40" height="14" rx="3" fill="#F3F4F6" stroke="#9CA3AF" stroke-width="1.5"/>
+    <circle cx="700" cy="233" r="3" fill="#9CA3AF"/>
+    <rect x="670" y="244" width="40" height="14" rx="3" fill="#F3F4F6" stroke="#9CA3AF" stroke-width="1.5"/>
+    <circle cx="700" cy="251" r="3" fill="#9CA3AF"/>
+  <text x="768" y="242" font-size="13" font-weight="700" fill="#374151" text-anchor="start" dominant-baseline="middle">Protected</text>
+  <text x="768" y="260" font-size="13" font-weight="700" fill="#374151" text-anchor="start" dominant-baseline="middle">Backend</text>
+  <text x="768" y="278" font-size="13" font-weight="700" fill="#374151" text-anchor="start" dominant-baseline="middle">Services</text>
+  <rect x="658" y="316" width="125" height="20" rx="10" fill="#DCFCE7"/>
+    <text x="720" y="326" font-size="10" font-weight="700" fill="#15803D" text-anchor="middle" dominant-baseline="middle">100% Available</text>
+
+  <!-- Arrows from clients -->
+  <line x1="185" y1="110" x2="228" y2="180" stroke="#9CA3AF" stroke-width="1.5" marker-end="url(#arr)"/>
+  <line x1="185" y1="250" x2="228" y2="250" stroke="#9CA3AF" stroke-width="1.5" marker-end="url(#arr)"/>
+
+</svg>

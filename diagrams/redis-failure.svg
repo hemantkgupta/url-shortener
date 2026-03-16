@@ -1,0 +1,58 @@
+<svg viewBox="0 0 820 430" width="820" height="430" xmlns="http://www.w3.org/2000/svg" font-family="system-ui,-apple-system,sans-serif">
+<defs>
+  <marker id="arr" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto">
+    <polygon points="0 0,9 3.5,0 7" fill="#9CA3AF"/></marker>
+  <marker id="arr-gr" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto">
+    <polygon points="0 0,9 3.5,0 7" fill="#10B981"/></marker>
+  <marker id="arr-re" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto">
+    <polygon points="0 0,9 3.5,0 7" fill="#EF4444"/></marker>
+  <marker id="arr-bl" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto">
+    <polygon points="0 0,9 3.5,0 7" fill="#3B82F6"/></marker>
+  <marker id="arr-or" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto">
+    <polygon points="0 0,9 3.5,0 7" fill="#F97316"/></marker>
+  <marker id="arr-pu" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto">
+    <polygon points="0 0,9 3.5,0 7" fill="#8B5CF6"/></marker>
+</defs>
+
+  <rect x="10" y="10" width="820" height="420" rx="16" fill="#FFFBEB" stroke="#F59E0B" stroke-width="1.5"/>
+
+  <!-- Read Service -->
+  <rect x="50" y="130" width="160" height="120" rx="12" fill="#EFF6FF" stroke="#3B82F6" stroke-width="2"/>
+  <rect x="70" y="143" width="40" height="14" rx="3" fill="#DBEAFE" stroke="#3B82F6" stroke-width="1.5"/>
+    <circle cx="100" cy="150" r="3" fill="#3B82F6"/>
+    <rect x="70" y="161" width="40" height="14" rx="3" fill="#DBEAFE" stroke="#3B82F6" stroke-width="1.5"/>
+    <circle cx="100" cy="168" r="3" fill="#3B82F6"/>
+  <text x="130" y="168" font-size="13" font-weight="700" fill="#1E40AF" text-anchor="start" dominant-baseline="middle">Read Service</text>
+  <line x1="10" y1="185" x2="48" y2="185" stroke="#9CA3AF" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <!-- Redis (Node Down) -->
+  <rect x="570" y="60" width="180" height="120" rx="12" fill="#FEF2F2" stroke="#EF4444" stroke-width="1.5"/>
+  <rect x="674" y="47" width="90" height="20" rx="10" fill="#EF4444"/>
+    <text x="719" y="57" font-size="10" font-weight="700" fill="#FFFFFF" text-anchor="middle" dominant-baseline="middle">Node Down</text>
+  <text x="660" y="100" font-size="22" font-weight="400" fill="#FCA5A5" text-anchor="middle" dominant-baseline="middle">⬛</text>
+  <text x="660" y="125" font-size="13" font-weight="700" fill="#B91C1C" text-anchor="middle" dominant-baseline="middle">Redis Cache</text>
+
+  <!-- DB (Load Increases) -->
+  <rect x="570" y="230" width="180" height="120" rx="12" fill="#FFF7ED" stroke="#F97316" stroke-width="1.5"/>
+  <rect x="664" y="217" width="110" height="20" rx="10" fill="#FFF7ED"/>
+    <text x="719" y="227" font-size="10" font-weight="700" fill="#F97316" text-anchor="middle" dominant-baseline="middle">Load Increases</text>
+  <ellipse cx="615" cy="267" rx="22" ry="8" fill="#FED7AA" stroke="#F97316" stroke-width="1.5"/>
+    <rect x="593" y="267" width="44" height="28" fill="#FED7AA" stroke="#F97316" stroke-width="1.5"/>
+    <ellipse cx="615" cy="295" rx="22" ry="8" fill="#FED7AA" stroke="#F97316" stroke-width="1.5"/>
+  <text x="690" y="278" font-size="13" font-weight="700" fill="#9A3412" text-anchor="start" dominant-baseline="middle">Primary DB</text>
+
+  <!-- Fail arrows -->
+  <line x1="210" y1="155" x2="568" y2="115" stroke="#EF4444" stroke-width="2" stroke-dasharray="7,4" marker-end="url(#arr-re)"/>
+  <text x="380" y="118" font-size="12" font-weight="700" fill="#EF4444" text-anchor="middle">✕</text>
+
+  <rect x="248" y="230" width="130" height="22" rx="11" fill="#FEF3C7"/>
+  <text x="313" y="241" font-size="10" font-weight="700" fill="#D97706" text-anchor="middle" dominant-baseline="middle">Fail-Open Fallback</text>
+  <line x1="210" y1="215" x2="568" y2="285" stroke="#F97316" stroke-width="2" marker-end="url(#arr-or)"/>
+
+  <!-- Warning box -->
+  <rect x="40" y="360" width="740" height="48" rx="10" fill="#FEFCE8" stroke="#EAB308" stroke-width="1.5"/>
+  <text x="64" y="382" font-size="11" font-weight="700" fill="#854D0E">⚠  Risk:</text>
+  <text x="120" y="382" font-size="11" fill="#713F12">A cache failure shifts 100% of read traffic to the database.</text>
+  <text x="64" y="397" font-size="11" fill="#713F12">Envoy rate limiting is strictly required to throttle the surge and prevent cascading DB failure.</text>
+
+</svg>

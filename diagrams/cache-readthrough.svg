@@ -1,0 +1,42 @@
+<svg viewBox="0 0 820 390" width="820" height="390"
+  xmlns="http://www.w3.org/2000/svg"
+  font-family="system-ui, -apple-system, sans-serif">
+  <defs>
+    <marker id="ah" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+      <polygon points="0 0, 8 3, 0 6" fill="#9CA3AF"/>
+    </marker>
+    <marker id="ah-g" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+      <polygon points="0 0, 8 3, 0 6" fill="#10B981"/>
+    </marker>
+    <marker id="ah-r" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+      <polygon points="0 0, 8 3, 0 6" fill="#EF4444"/>
+    </marker>
+    <marker id="ah-b" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+      <polygon points="0 0, 8 3, 0 6" fill="#3B82F6"/>
+    </marker>
+    <marker id="ah-p" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+      <polygon points="0 0, 8 3, 0 6" fill="#8B5CF6"/>
+    </marker>
+    <marker id="ah-o" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+      <polygon points="0 0, 8 3, 0 6" fill="#F97316"/>
+    </marker>
+  </defs>
+<rect x="10" y="10" width="800" height="370" rx="16" fill="#EFF6FF" stroke="#3B82F6" stroke-width="1.5"/>
+<rect x="55" y="112" width="162" height="146" rx="12" fill="#EFF6FF" stroke="#3B82F6" stroke-width="2"/>
+<text x="136" y="160" font-size="22" font-weight="bold" fill="#3B82F6" text-anchor="middle" dominant-baseline="middle">[  ]</text>
+<text x="136" y="186" font-size="14" font-weight="bold" fill="#1E40AF" text-anchor="middle" dominant-baseline="middle">Application</text>
+<text x="55" y="274" font-size="11" font-weight="bold" fill="#9CA3AF" dominant-baseline="middle">READ &#x2192;</text>
+<rect x="565" y="62" width="178" height="96" rx="12" fill="#F5F3FF" stroke="#8B5CF6" stroke-width="1.5"/>
+<text x="654" y="108" font-size="13" font-weight="bold" fill="#5B21B6" text-anchor="middle" dominant-baseline="middle">Redis Cache</text>
+<rect x="565" y="222" width="178" height="96" rx="12" fill="#F9FAFB" stroke="#9CA3AF" stroke-width="1.5"/>
+<ellipse cx="604" cy="248" rx="20" ry="7" fill="#F3F4F6" stroke="#9CA3AF" stroke-width="1.5"/><rect x="584" y="248" width="40" height="24" fill="#F3F4F6" stroke="#9CA3AF" stroke-width="1.5"/><ellipse cx="604" cy="272" rx="20" ry="7" fill="#F3F4F6" stroke="#9CA3AF" stroke-width="1.5"/>
+<text x="690" y="258" font-size="13" font-weight="bold" fill="#374151" text-anchor="start" dominant-baseline="middle">Primary DB</text>
+<rect x="270" y="77" width="130" height="22" rx="11" fill="#EDE9FE"/><text x="335" y="88" font-size="10" font-weight="600" fill="#7C3AED" text-anchor="middle" dominant-baseline="middle">1. Check Cache</text>
+<line x1="218" y1="148" x2="563" y2="108" stroke="#8B5CF6" stroke-width="1.5" stroke-dasharray="6,3" marker-end="url(#ah-p)"/>
+<rect x="265" y="151" width="80" height="22" rx="11" fill="#FEE2E2"/><text x="305" y="162" font-size="10" font-weight="600" fill="#EF4444" text-anchor="middle" dominant-baseline="middle">2. Miss!</text>
+<line x1="563" y1="136" x2="218" y2="166" stroke="#EF4444" stroke-width="1.5" stroke-dasharray="6,3" marker-end="url(#ah-r)"/>
+<rect x="281" y="219" width="128" height="22" rx="11" fill="#F3F4F6"/><text x="345" y="230" font-size="10" font-weight="600" fill="#374151" text-anchor="middle" dominant-baseline="middle">3. Fetch from DB</text>
+<line x1="218" y1="198" x2="563" y2="258" stroke="#9CA3AF" stroke-width="1.5" marker-end="url(#ah)"/>
+<rect x="269" y="287" width="132" height="22" rx="11" fill="#DCFCE7"/><text x="335" y="298" font-size="10" font-weight="600" fill="#15803D" text-anchor="middle" dominant-baseline="middle">4. Populate Cache</text>
+<line x1="563" y1="286" x2="218" y2="230" stroke="#10B981" stroke-width="1.5" marker-end="url(#ah-g)"/>
+</svg>

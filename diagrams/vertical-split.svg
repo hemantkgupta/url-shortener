@@ -1,0 +1,64 @@
+<svg viewBox="0 0 870 470" width="870" height="470"
+  xmlns="http://www.w3.org/2000/svg"
+  font-family="system-ui, -apple-system, sans-serif">
+  <defs>
+    <marker id="ah" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+      <polygon points="0 0, 8 3, 0 6" fill="#9CA3AF"/>
+    </marker>
+    <marker id="ah-g" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+      <polygon points="0 0, 8 3, 0 6" fill="#10B981"/>
+    </marker>
+    <marker id="ah-r" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+      <polygon points="0 0, 8 3, 0 6" fill="#EF4444"/>
+    </marker>
+    <marker id="ah-b" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+      <polygon points="0 0, 8 3, 0 6" fill="#3B82F6"/>
+    </marker>
+    <marker id="ah-p" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+      <polygon points="0 0, 8 3, 0 6" fill="#8B5CF6"/>
+    </marker>
+    <marker id="ah-o" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+      <polygon points="0 0, 8 3, 0 6" fill="#F97316"/>
+    </marker>
+  </defs>
+<rect x="10" y="10" width="850" height="450" rx="16" fill="#FAFAFA" stroke="#E5E7EB" stroke-width="1.5"/>
+<rect x="30" y="44" width="236" height="360" rx="12" fill="#FFFFFF" stroke="#D1D5DB" stroke-width="1.5"/>
+<text x="138" y="72" font-size="13" font-weight="bold" fill="#374151" text-anchor="middle" dominant-baseline="middle">Monolithic Table</text>
+<line x1="30" y1="88" x2="266" y2="88" stroke="#E5E7EB" stroke-width="1"/>
+<rect x="42" y="104" width="210" height="34" rx="6" fill="#EFF6FF" stroke="#BFDBFE" stroke-width="1"/>
+<text x="52" y="121" font-size="12" font-weight="bold" fill="#1E40AF" text-anchor="start" dominant-baseline="middle">short_code (PK)</text>
+<rect x="42" y="150" width="210" height="34" rx="6" fill="#EFF6FF" stroke="#BFDBFE" stroke-width="1"/>
+<text x="52" y="167" font-size="12" font-weight="normal" fill="#1E40AF" text-anchor="start" dominant-baseline="middle">long_url</text>
+<rect x="42" y="196" width="210" height="34" rx="6" fill="#F9FAFB" stroke="#F3F4F6" stroke-width="1"/>
+<text x="52" y="213" font-size="12" font-weight="normal" fill="#6B7280" text-anchor="start" dominant-baseline="middle">user_id</text>
+<rect x="42" y="242" width="210" height="34" rx="6" fill="#F9FAFB" stroke="#F3F4F6" stroke-width="1"/>
+<text x="52" y="259" font-size="12" font-weight="normal" fill="#6B7280" text-anchor="start" dominant-baseline="middle">created_at</text>
+<rect x="42" y="288" width="210" height="34" rx="6" fill="#F9FAFB" stroke="#F3F4F6" stroke-width="1"/>
+<text x="52" y="305" font-size="12" font-weight="normal" fill="#6B7280" text-anchor="start" dominant-baseline="middle">clicks_count</text>
+<text x="148" y="348" font-size="9" font-weight="normal" fill="#9CA3AF" text-anchor="middle" dominant-baseline="middle">Wide rows = high memory overhead</text>
+<text x="148" y="362" font-size="9" font-weight="normal" fill="#9CA3AF" text-anchor="middle" dominant-baseline="middle">during redirect lookups</text>
+<text x="366" y="222" font-size="12" font-weight="bold" fill="#9CA3AF" text-anchor="middle" dominant-baseline="middle">VERTICAL</text>
+<text x="366" y="238" font-size="12" font-weight="bold" fill="#9CA3AF" text-anchor="middle" dominant-baseline="middle">SPLIT</text>
+<line x1="268" y1="180" x2="398" y2="165" stroke="#3B82F6" stroke-width="1.5" marker-end="url(#ah-b)"/>
+<line x1="268" y1="298" x2="398" y2="320" stroke="#8B5CF6" stroke-width="1.5" marker-end="url(#ah-p)"/>
+<rect x="408" y="44" width="434" height="180" rx="12" fill="#FFFFFF" stroke="#3B82F6" stroke-width="2"/>
+<text x="478" y="72" font-size="13" font-weight="bold" fill="#1E40AF" text-anchor="start" dominant-baseline="middle">Core Redirection Table</text>
+<line x1="408" y1="88" x2="842" y2="88" stroke="#BFDBFE" stroke-width="1"/>
+<rect x="420" y="104" width="410" height="34" rx="6" fill="#EFF6FF" stroke="#BFDBFE" stroke-width="1"/>
+<text x="432" y="121" font-size="12" font-weight="bold" fill="#1E40AF" text-anchor="start" dominant-baseline="middle">short_code (PK)</text>
+<rect x="420" y="150" width="410" height="34" rx="6" fill="#EFF6FF" stroke="#BFDBFE" stroke-width="1"/>
+<text x="432" y="167" font-size="12" font-weight="normal" fill="#1E40AF" text-anchor="start" dominant-baseline="middle">long_url</text>
+<text x="625" y="208" font-size="9" font-weight="normal" fill="#3B82F6" text-anchor="middle" dominant-baseline="middle">Narrow rows = ultra-fast cache + lookups</text>
+<rect x="408" y="252" width="434" height="206" rx="12" fill="#FFFFFF" stroke="#8B5CF6" stroke-width="2"/>
+<text x="478" y="278" font-size="13" font-weight="bold" fill="#5B21B6" text-anchor="start" dominant-baseline="middle">Metadata / Analytics</text>
+<line x1="408" y1="294" x2="842" y2="294" stroke="#DDD6FE" stroke-width="1"/>
+<rect x="420" y="310" width="410" height="28" rx="6" fill="#F5F3FF" stroke="#DDD6FE" stroke-width="1"/>
+<text x="432" y="324" font-size="12" font-weight="bold" fill="#5B21B6" text-anchor="start" dominant-baseline="middle">short_code (PK)</text>
+<rect x="420" y="346" width="410" height="28" rx="6" fill="#F5F3FF" stroke="#DDD6FE" stroke-width="1"/>
+<text x="432" y="360" font-size="12" font-weight="normal" fill="#5B21B6" text-anchor="start" dominant-baseline="middle">user_id</text>
+<rect x="420" y="382" width="410" height="28" rx="6" fill="#F5F3FF" stroke="#DDD6FE" stroke-width="1"/>
+<text x="432" y="396" font-size="12" font-weight="normal" fill="#5B21B6" text-anchor="start" dominant-baseline="middle">created_at</text>
+<rect x="420" y="418" width="410" height="28" rx="6" fill="#F5F3FF" stroke="#DDD6FE" stroke-width="1"/>
+<text x="432" y="432" font-size="12" font-weight="normal" fill="#5B21B6" text-anchor="start" dominant-baseline="middle">clicks_count</text>
+<text x="625" y="456" font-size="9" font-weight="normal" fill="#8B5CF6" text-anchor="middle" dominant-baseline="middle">Updated asynchronously via background queues</text>
+</svg>
