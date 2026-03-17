@@ -1,0 +1,176 @@
+---
+# =============================================================================
+# Key Generation Service (KGS) — StatefulSet for stable DNS identity
+# =============================================================================
+# Uses StatefulSet so each pod gets a stable network identity:
+#   kgs-0.kgs.url-shortener.svc.cluster.local
+#   kgs-1.kgs.url-shortener.svc.cluster.local
+# This is critical for range-based key partitioning via etcd leases.
+# =============================================================================
+
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: kgs
+  namespace: url-shortener
+  labels:
+    app: kgs
+    app.kubernetes.io/name: kgs
+    app.kubernetes.io/component: key-generation
+    app.kubernetes.io/version: "1.0.0-SNAPSHOT"
+spec:
+  serviceName: kgs-headless       # Points to headless service below
+  replicas: 2
+  selector:
+    matchLabels:
+      app: kgs
+  updateStrategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+  podManagementPolicy: Parallel
+  template:
+    metadata:
+      labels:
+        app: kgs
+        app.kubernetes.io/name: kgs
+        app.kubernetes.io/version: "1.0.0-SNAPSHOT"
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8081"
+        prometheus.io/path: "/actuator/prometheus"
+    spec:
+      terminationGracePeriodSeconds: 45
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchLabels:
+                  app: kgs
+              topologyKey: kubernetes.io/hostname
+      containers:
+        - name: kgs
+          image: url-shortener/key-generation-service:1.0.0-SNAPSHOT
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8081
+              protocol: TCP
+          envFrom:
+            - configMapRef:
+                name: url-shortener-config
+            - secretRef:
+                name: url-shortener-secrets
+          env:
+            - name: OTEL_SERVICE_NAME
+              value: key-generation-service
+            - name: SERVER_PORT
+              value: "8081"
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+            # Expose the stable pod ordinal index so the service can shard key ranges
+            - name: KGS_INSTANCE_ID
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name  # e.g., "kgs-0", "kgs-1"
+            - name: JAVA_OPTS
+              value: >-
+                -XX:+UseG1GC
+                -XX:MaxGCPauseMillis=50
+                -XX:+ExitOnOutOfMemoryError
+                -Djava.security.egd=file:/dev/./urandom
+                -Dserver.port=8081
+          resources:
+            requests:
+              cpu: 150m
+              memory: 384Mi
+            limits:
+              cpu: 500m
+              memory: 1Gi
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: 8081
+            initialDelaySeconds: 20
+            periodSeconds: 10
+            timeoutSeconds: 5
+            successThreshold: 1
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: 8081
+            initialDelaySeconds: 30
+            periodSeconds: 15
+            timeoutSeconds: 5
+            successThreshold: 1
+            failureThreshold: 3
+          startupProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8081
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 30
+          lifecycle:
+            preStop:
+              exec:
+                # Allow in-flight key batch operations to complete
+                command: ["sh", "-c", "sleep 10"]
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+---
+# Headless Service — provides stable DNS per pod (kgs-0, kgs-1, ...)
+apiVersion: v1
+kind: Service
+metadata:
+  name: kgs-headless
+  namespace: url-shortener
+  labels:
+    app: kgs
+    app.kubernetes.io/name: kgs
+    app.kubernetes.io/component: key-generation
+spec:
+  type: ClusterIP
+  clusterIP: None   # Headless — DNS returns individual pod IPs
+  selector:
+    app: kgs
+  ports:
+    - name: http
+      protocol: TCP
+      port: 8081
+      targetPort: 8081
+---
+# Regular ClusterIP service for load-balanced access (internal callers)
+apiVersion: v1
+kind: Service
+metadata:
+  name: kgs
+  namespace: url-shortener
+  labels:
+    app: kgs
+    app.kubernetes.io/name: kgs
+    app.kubernetes.io/component: key-generation
+spec:
+  type: ClusterIP
+  selector:
+    app: kgs
+  ports:
+    - name: http
+      protocol: TCP
+      port: 8081
+      targetPort: 8081
+  sessionAffinity: None

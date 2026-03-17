@@ -1,0 +1,181 @@
+---
+# =============================================================================
+# Nginx Ingress — Route external traffic to internal services
+# =============================================================================
+# Routes:
+#   /                               → redirect-service:8080  (301 redirects)
+#   /v1/urls                        → write-service:8082     (URL creation)
+#   /v1/urls/*/analytics            → analytics-service:8083 (click stats)
+#
+# Rate limiting:
+#   Redirect path: 10,000 req/min per IP (burst 500)
+#   Write path:    100 req/min per IP    (burst 20)
+#   Analytics:     500 req/min per IP    (burst 50)
+# =============================================================================
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: url-shortener-ingress
+  namespace: url-shortener
+  labels:
+    app.kubernetes.io/name: url-shortener
+    app.kubernetes.io/component: ingress
+  annotations:
+    # Ingress class
+    kubernetes.io/ingress.class: nginx
+    nginx.ingress.kubernetes.io/use-regex: "true"
+
+    # ---------------------------------------------------------------------------
+    # SSL / TLS
+    # ---------------------------------------------------------------------------
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+
+    # ---------------------------------------------------------------------------
+    # Rate limiting — shared zones defined at nginx level
+    # ---------------------------------------------------------------------------
+    # Default rate limit (applies to all paths unless overridden per-path)
+    nginx.ingress.kubernetes.io/limit-connections: "200"
+    nginx.ingress.kubernetes.io/limit-rpm: "6000"
+    nginx.ingress.kubernetes.io/limit-burst-multiplier: "5"
+
+    # Rate limit key: use real client IP
+    nginx.ingress.kubernetes.io/limit-rps: "100"
+
+    # ---------------------------------------------------------------------------
+    # Proxy / upstream settings
+    # ---------------------------------------------------------------------------
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "5"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "10"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "10"
+    nginx.ingress.kubernetes.io/proxy-body-size: "1m"
+    nginx.ingress.kubernetes.io/proxy-buffer-size: "8k"
+
+    # ---------------------------------------------------------------------------
+    # Headers
+    # ---------------------------------------------------------------------------
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      more_set_headers "X-Frame-Options: DENY";
+      more_set_headers "X-Content-Type-Options: nosniff";
+      more_set_headers "X-XSS-Protection: 1; mode=block";
+      more_set_headers "Referrer-Policy: strict-origin-when-cross-origin";
+      more_set_headers "X-Request-Id: $request_id";
+
+    # Real IP from X-Forwarded-For
+    nginx.ingress.kubernetes.io/enable-real-ip: "true"
+    nginx.ingress.kubernetes.io/forwarded-for-header: "X-Forwarded-For"
+
+    # ---------------------------------------------------------------------------
+    # CORS — write and analytics paths only
+    # ---------------------------------------------------------------------------
+    nginx.ingress.kubernetes.io/enable-cors: "true"
+    nginx.ingress.kubernetes.io/cors-allow-methods: "GET, POST, OPTIONS"
+    nginx.ingress.kubernetes.io/cors-allow-headers: "DNT,X-CustomHeader,Keep-Alive,User-Agent,X-Requested-With,Content-Type,Authorization"
+
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - sh.rt
+        - api.sh.rt
+      secretName: url-shortener-tls
+  rules:
+    # -------------------------------------------------------------------------
+    # Primary redirect domain — sh.rt
+    # -------------------------------------------------------------------------
+    - host: sh.rt
+      http:
+        paths:
+          # Analytics API (must match before the wildcard redirect path)
+          - path: /v1/urls/(.+)/analytics
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: analytics-service
+                port:
+                  number: 8083
+          # URL creation API
+          - path: /v1/urls
+            pathType: Prefix
+            backend:
+              service:
+                name: write-service
+                port:
+                  number: 8082
+          # Actuator health (internal monitoring, no rate limit override needed)
+          - path: /actuator/health
+            pathType: Prefix
+            backend:
+              service:
+                name: redirect-service
+                port:
+                  number: 8080
+          # Everything else is a short-code redirect
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: redirect-service
+                port:
+                  number: 8080
+    # -------------------------------------------------------------------------
+    # API subdomain — api.sh.rt (write + analytics only)
+    # -------------------------------------------------------------------------
+    - host: api.sh.rt
+      http:
+        paths:
+          - path: /v1/urls/(.+)/analytics
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: analytics-service
+                port:
+                  number: 8083
+          - path: /v1/urls
+            pathType: Prefix
+            backend:
+              service:
+                name: write-service
+                port:
+                  number: 8082
+---
+# ---------------------------------------------------------------------------
+# Separate Ingress for write-service with tighter rate limits
+# ---------------------------------------------------------------------------
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: write-service-ingress
+  namespace: url-shortener
+  labels:
+    app.kubernetes.io/name: url-shortener
+    app.kubernetes.io/component: ingress-write
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    nginx.ingress.kubernetes.io/use-regex: "true"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    # Write path: strict rate limiting
+    nginx.ingress.kubernetes.io/limit-rpm: "100"
+    nginx.ingress.kubernetes.io/limit-burst-multiplier: "2"
+    nginx.ingress.kubernetes.io/limit-connections: "20"
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "5"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "15"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "15"
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - api.sh.rt
+      secretName: url-shortener-tls
+  rules:
+    - host: api.sh.rt
+      http:
+        paths:
+          - path: /v1/urls
+            pathType: Prefix
+            backend:
+              service:
+                name: write-service
+                port:
+                  number: 8082

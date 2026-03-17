@@ -1,0 +1,95 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: url-shortener-config
+  namespace: url-shortener
+  labels:
+    app.kubernetes.io/name: url-shortener
+    app.kubernetes.io/component: config
+data:
+  # ---------------------------------------------------------------------------
+  # ScyllaDB / Cassandra
+  # ---------------------------------------------------------------------------
+  CASSANDRA_CONTACT_POINTS: "scylladb.url-shortener.svc.cluster.local"
+  CASSANDRA_PORT: "9042"
+  CASSANDRA_KEYSPACE: "url_shortener"
+  CASSANDRA_LOCAL_DC: "datacenter1"
+  CASSANDRA_CONSISTENCY_LEVEL: "LOCAL_QUORUM"
+  CASSANDRA_REQUEST_TIMEOUT_MS: "5000"
+  CASSANDRA_POOL_MAX_CONN_PER_HOST: "4"
+
+  # ---------------------------------------------------------------------------
+  # Redis
+  # ---------------------------------------------------------------------------
+  REDIS_HOST: "redis.url-shortener.svc.cluster.local"
+  REDIS_PORT: "6379"
+  REDIS_DATABASE: "0"
+  REDIS_CONNECT_TIMEOUT_MS: "2000"
+  REDIS_COMMAND_TIMEOUT_MS: "1000"
+  # Cache TTLs
+  REDIS_URL_CACHE_TTL_SECONDS: "86400"
+  REDIS_BLOOM_FILTER_NAME: "url-shortener:bloom:short-codes"
+  REDIS_BLOOM_EXPECTED_INSERTIONS: "100000000"
+  REDIS_BLOOM_FALSE_POSITIVE_RATE: "0.001"
+
+  # ---------------------------------------------------------------------------
+  # Kafka
+  # ---------------------------------------------------------------------------
+  KAFKA_BOOTSTRAP_SERVERS: "kafka.url-shortener.svc.cluster.local:9092"
+  KAFKA_PRODUCER_ACKS: "1"
+  KAFKA_PRODUCER_RETRIES: "3"
+  KAFKA_PRODUCER_BATCH_SIZE_BYTES: "65536"
+  KAFKA_PRODUCER_LINGER_MS: "5"
+  KAFKA_PRODUCER_BUFFER_MEMORY_BYTES: "33554432"
+  KAFKA_CONSUMER_GROUP_ID_ANALYTICS: "analytics-consumer-group"
+  KAFKA_CONSUMER_GROUP_ID_BLOOM: "bloom-filter-consumer-group"
+  KAFKA_CONSUMER_AUTO_OFFSET_RESET: "latest"
+  KAFKA_CONSUMER_MAX_POLL_RECORDS: "500"
+  # Topic names
+  KAFKA_TOPIC_URL_CREATED: "url.created"
+  KAFKA_TOPIC_CLICK_EVENTS: "click.events"
+  KAFKA_TOPIC_BLOOM_POPULATE: "bloom.filter.populate"
+
+  # ---------------------------------------------------------------------------
+  # etcd (KGS coordination)
+  # ---------------------------------------------------------------------------
+  ETCD_ENDPOINTS: "http://etcd.url-shortener.svc.cluster.local:2379"
+  ETCD_CONNECT_TIMEOUT_MS: "3000"
+  ETCD_KEEP_ALIVE_TIME_MS: "30000"
+  ETCD_KEEP_ALIVE_TIMEOUT_MS: "10000"
+  KGS_KEY_BATCH_SIZE: "1000"
+  KGS_KEY_REFILL_THRESHOLD: "200"
+  KGS_SHORT_CODE_ALPHABET: "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+  KGS_SHORT_CODE_LENGTH: "7"
+
+  # ---------------------------------------------------------------------------
+  # ClickHouse (analytics)
+  # ---------------------------------------------------------------------------
+  CLICKHOUSE_HOST: "clickhouse.url-shortener.svc.cluster.local"
+  CLICKHOUSE_HTTP_PORT: "8123"
+  CLICKHOUSE_NATIVE_PORT: "9000"
+  CLICKHOUSE_DATABASE: "analytics"
+  CLICKHOUSE_USER: "default"
+  CLICKHOUSE_SOCKET_TIMEOUT_MS: "10000"
+  CLICKHOUSE_CONNECTION_TIMEOUT_MS: "3000"
+
+  # ---------------------------------------------------------------------------
+  # OpenTelemetry / Observability
+  # ---------------------------------------------------------------------------
+  OTEL_EXPORTER_OTLP_ENDPOINT: "http://signoz-otel-collector.url-shortener.svc.cluster.local:4317"
+  OTEL_EXPORTER_OTLP_PROTOCOL: "grpc"
+  OTEL_METRICS_EXPORTER: "otlp"
+  OTEL_TRACES_EXPORTER: "otlp"
+  OTEL_LOGS_EXPORTER: "otlp"
+  OTEL_RESOURCE_ATTRIBUTES: "deployment.environment=production,service.namespace=url-shortener"
+  MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: "health,info,metrics,prometheus"
+  MANAGEMENT_ENDPOINT_HEALTH_PROBES_ENABLED: "true"
+
+  # ---------------------------------------------------------------------------
+  # Application — general
+  # ---------------------------------------------------------------------------
+  SERVER_SHUTDOWN: "graceful"
+  SPRING_LIFECYCLE_TIMEOUT_PER_SHUTDOWN_PHASE: "30s"
+  SPRING_PROFILES_ACTIVE: "prod"
+  BASE_URL: "https://sh.rt"
+  SHORT_CODE_BASE_URL: "https://sh.rt/"

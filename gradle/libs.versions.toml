@@ -1,0 +1,135 @@
+[versions]
+# Core platform
+java                    = "21"
+spring-boot             = "3.3.4"
+spring-dependency-mgmt  = "1.1.6"
+
+# Data
+cassandra-driver        = "4.18.1"
+lettuce                 = "6.3.2.RELEASE"
+jetcd                   = "0.7.7"
+clickhouse-jdbc         = "0.6.3"
+redisson                = "3.35.0"         # for RedisBloom / RedisJSON support
+
+# Messaging
+spring-kafka            = "3.2.3"
+kafka-clients           = "3.7.1"
+
+# Flink (analytics-service only)
+flink                   = "1.19.1"
+flink-connector-kafka   = "3.2.0-1.19"
+
+# Observability
+opentelemetry           = "1.40.0"
+otel-instrumentation    = "2.8.0"
+micrometer              = "1.13.4"
+
+# Testing
+junit                   = "5.11.0"
+mockito                 = "5.13.0"
+testcontainers          = "1.20.2"
+wiremock                = "3.9.1"
+assertj                 = "3.26.3"
+awaitility              = "4.2.2"
+
+# Performance
+gatling                 = "3.12.0"
+
+# Utilities
+jackson                 = "2.17.2"
+guava                   = "33.3.1-jre"
+commons-lang3           = "3.17.0"
+slf4j                   = "2.0.16"
+logback                 = "1.5.8"
+
+# Build plugins
+gradle-versions-plugin  = "0.51.0"
+spotless                = "6.25.0"
+jib                     = "3.4.3"
+
+[libraries]
+# Spring Boot starters
+spring-boot-starter-web         = { module = "org.springframework.boot:spring-boot-starter-web" }
+spring-boot-starter-actuator    = { module = "org.springframework.boot:spring-boot-starter-actuator" }
+spring-boot-starter-validation  = { module = "org.springframework.boot:spring-boot-starter-validation" }
+spring-boot-starter-data-redis  = { module = "org.springframework.boot:spring-boot-starter-data-redis" }
+spring-boot-starter-test        = { module = "org.springframework.boot:spring-boot-starter-test" }
+spring-boot-configuration-processor = { module = "org.springframework.boot:spring-boot-configuration-processor" }
+spring-kafka                    = { module = "org.springframework.kafka:spring-kafka", version.ref = "spring-kafka" }
+spring-kafka-test               = { module = "org.springframework.kafka:spring-kafka-test", version.ref = "spring-kafka" }
+
+# Database — ScyllaDB / Cassandra
+cassandra-driver-core           = { module = "com.datastax.oss:java-driver-core", version.ref = "cassandra-driver" }
+cassandra-driver-query-builder  = { module = "com.datastax.oss:java-driver-query-builder", version.ref = "cassandra-driver" }
+cassandra-driver-mapper-runtime = { module = "com.datastax.oss:java-driver-mapper-runtime", version.ref = "cassandra-driver" }
+cassandra-driver-mapper-processor = { module = "com.datastax.oss:java-driver-mapper-processor", version.ref = "cassandra-driver" }
+
+# Redis
+lettuce-core                    = { module = "io.lettuce:lettuce-core", version.ref = "lettuce" }
+redisson                        = { module = "org.redisson:redisson", version.ref = "redisson" }
+
+# etcd
+jetcd-core                      = { module = "io.etcd:jetcd-core", version.ref = "jetcd" }
+jetcd-test                      = { module = "io.etcd:jetcd-test", version.ref = "jetcd" }
+
+# ClickHouse
+clickhouse-jdbc                 = { module = "com.clickhouse:clickhouse-jdbc", version.ref = "clickhouse-jdbc" }
+
+# Flink (analytics-service only — set provided scope to avoid fat-jar issues)
+flink-streaming-java            = { module = "org.apache.flink:flink-streaming-java", version.ref = "flink" }
+flink-clients                   = { module = "org.apache.flink:flink-clients", version.ref = "flink" }
+flink-connector-kafka           = { module = "org.apache.flink:flink-connector-kafka", version.ref = "flink-connector-kafka" }
+flink-connector-base            = { module = "org.apache.flink:flink-connector-base", version.ref = "flink" }
+
+# Observability
+opentelemetry-api               = { module = "io.opentelemetry:opentelemetry-api", version.ref = "opentelemetry" }
+opentelemetry-sdk               = { module = "io.opentelemetry:opentelemetry-sdk", version.ref = "opentelemetry" }
+opentelemetry-exporter-otlp     = { module = "io.opentelemetry:opentelemetry-exporter-otlp", version.ref = "opentelemetry" }
+micrometer-prometheus           = { module = "io.micrometer:micrometer-registry-prometheus", version.ref = "micrometer" }
+micrometer-otel                 = { module = "io.micrometer:micrometer-tracing-bridge-otel", version.ref = "micrometer" }
+
+# Testing
+junit-bom                       = { module = "org.junit:junit-bom", version.ref = "junit" }
+junit-jupiter                   = { module = "org.junit.jupiter:junit-jupiter" }
+mockito-core                    = { module = "org.mockito:mockito-core", version.ref = "mockito" }
+mockito-junit-jupiter           = { module = "org.mockito:mockito-junit-jupiter", version.ref = "mockito" }
+assertj-core                    = { module = "org.assertj:assertj-core", version.ref = "assertj" }
+awaitility                      = { module = "org.awaitility:awaitility", version.ref = "awaitility" }
+
+# Testcontainers
+testcontainers-bom              = { module = "org.testcontainers:testcontainers-bom", version.ref = "testcontainers" }
+testcontainers-core             = { module = "org.testcontainers:testcontainers" }
+testcontainers-cassandra        = { module = "org.testcontainers:cassandra" }
+testcontainers-kafka            = { module = "org.testcontainers:kafka" }
+testcontainers-clickhouse       = { module = "org.testcontainers:clickhouse" }
+testcontainers-junit-jupiter    = { module = "org.testcontainers:junit-jupiter" }
+testcontainers-redis            = { module = "com.redis:testcontainers-redis", version = "2.2.2" }
+
+# WireMock
+wiremock                        = { module = "org.wiremock:wiremock-standalone", version.ref = "wiremock" }
+
+# Utilities
+jackson-bom                     = { module = "com.fasterxml.jackson:jackson-bom", version.ref = "jackson" }
+jackson-databind                = { module = "com.fasterxml.jackson.core:jackson-databind" }
+jackson-datatype-jsr310         = { module = "com.fasterxml.jackson.datatype:jackson-datatype-jsr310" }
+guava                           = { module = "com.google.guava:guava", version.ref = "guava" }
+commons-lang3                   = { module = "org.apache.commons:commons-lang3", version.ref = "commons-lang3" }
+slf4j-api                       = { module = "org.slf4j:slf4j-api", version.ref = "slf4j" }
+logback-classic                 = { module = "ch.qos.logback:logback-classic", version.ref = "logback" }
+
+[bundles]
+spring-web-base     = ["spring-boot-starter-web", "spring-boot-starter-actuator", "spring-boot-starter-validation"]
+observability       = ["micrometer-prometheus", "opentelemetry-api"]
+cassandra           = ["cassandra-driver-core", "cassandra-driver-query-builder", "cassandra-driver-mapper-runtime"]
+testing-unit        = ["junit-jupiter", "mockito-core", "mockito-junit-jupiter", "assertj-core", "awaitility"]
+testing-integration = ["testcontainers-core", "testcontainers-junit-jupiter", "wiremock"]
+flink-core          = ["flink-streaming-java", "flink-clients", "flink-connector-kafka", "flink-connector-base"]
+jackson-full        = ["jackson-databind", "jackson-datatype-jsr310"]
+
+[plugins]
+spring-boot             = { id = "org.springframework.boot", version.ref = "spring-boot" }
+spring-dependency-mgmt  = { id = "io.spring.dependency-management", version.ref = "spring-dependency-mgmt" }
+gradle-versions         = { id = "com.github.ben-manes.versions", version.ref = "gradle-versions-plugin" }
+spotless                = { id = "com.diffplug.spotless", version.ref = "spotless" }
+jib                     = { id = "com.google.cloud.tools.jib", version.ref = "jib" }
+gatling                 = { id = "io.gatling.gradle", version.ref = "gatling" }

@@ -1,0 +1,70 @@
+# =============================================================================
+# Dockerfile.analytics — Analytics Service
+# =============================================================================
+# Multi-stage build:
+#   Stage 1 (builder): compiles the fat JAR via Gradle
+#   Stage 2 (runtime): minimal JRE image with OTel Java agent
+# =============================================================================
+
+# ---------------------------------------------------------------------------
+# Stage 1: Build
+# ---------------------------------------------------------------------------
+FROM gradle:8.10-jdk21 AS builder
+
+WORKDIR /workspace
+
+# Copy Gradle wrapper and build metadata first (cached layer)
+COPY gradlew ./
+COPY gradle/ gradle/
+COPY settings.gradle.kts ./
+COPY build.gradle.kts ./
+
+# Copy convention plugin sources (buildSrc)
+COPY buildSrc/ buildSrc/
+
+# Copy only the modules needed by analytics-service
+COPY core/ core/
+COPY analytics-service/ analytics-service/
+
+# Build the bootJar for analytics-service only
+RUN ./gradlew :analytics-service:bootJar --no-daemon --info \
+    && ls -lh analytics-service/build/libs/
+
+# ---------------------------------------------------------------------------
+# Stage 2: Runtime
+# ---------------------------------------------------------------------------
+FROM eclipse-temurin:21-jre-alpine
+
+# Install wget for OTel agent download, then clean up
+RUN apk add --no-cache wget curl
+
+# Download the OpenTelemetry Java agent
+ARG OTEL_AGENT_VERSION=2.9.0
+RUN wget -q "https://github.com/open-telemetry/opentelemetry-java-instrumentation/releases/download/v${OTEL_AGENT_VERSION}/opentelemetry-javaagent.jar" \
+    -O /opt/opentelemetry-javaagent.jar \
+    && chmod 444 /opt/opentelemetry-javaagent.jar
+
+# Create non-root user
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+
+WORKDIR /app
+
+# Copy the fat JAR from the build stage
+COPY --from=builder /workspace/analytics-service/build/libs/*.jar app.jar
+
+RUN chown appuser:appgroup app.jar
+
+USER appuser
+
+# Analytics service listens on 8083
+EXPOSE 8083
+
+# OTel configuration is supplied at runtime via environment variables:
+#   OTEL_EXPORTER_OTLP_ENDPOINT, OTEL_SERVICE_NAME, etc.
+ENTRYPOINT ["java", \
+    "-javaagent:/opt/opentelemetry-javaagent.jar", \
+    "-XX:+UseG1GC", \
+    "-XX:MaxGCPauseMillis=50", \
+    "-XX:+ExitOnOutOfMemoryError", \
+    "-Djava.security.egd=file:/dev/./urandom", \
+    "-jar", "app.jar"]

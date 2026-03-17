@@ -1,0 +1,50 @@
+server:
+  port: 8082
+
+spring:
+  application:
+    name: write-service
+  threads:
+    virtual:
+      enabled: true
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+      acks: all
+      retries: 3
+      properties:
+        enable.idempotence: true
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+
+write:
+  kgs-base-url: ${KGS_BASE_URL:http://localhost:8081}
+  own-domain: ${OWN_DOMAIN:localhost}
+  cassandra:
+    contact-points: ${CASSANDRA_CONTACT_POINTS:localhost}
+    port: ${CASSANDRA_PORT:9042}
+    keyspace: ${CASSANDRA_KEYSPACE:url_shortener}
+    datacenter: ${CASSANDRA_DATACENTER:datacenter1}
+  kafka:
+    topic:
+      url-created: url.created
+      bloom-filter: bloom.filter.populate
+  safe-browsing:
+    enabled: ${SAFE_BROWSING_ENABLED:false}
+    blocklist:
+      - malware.example.com
+      - phishing.test.org
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus,metrics
+  metrics:
+    export:
+      prometheus:
+        enabled: true

@@ -1,0 +1,19 @@
+# ── Development / local Docker Compose overrides ──────────────────────────────
+# Applied when SPRING_PROFILES_ACTIVE=dev (or --spring.profiles.active=dev).
+# These settings match the defaults in application.yml but enable DEBUG logging
+# to aid local troubleshooting.
+
+kgs:
+  etcd:
+    endpoints: http://localhost:2379
+  redis:
+    address: redis://localhost:6379
+  block-size: 10000
+  region: local
+
+logging:
+  level:
+    root: INFO
+    com.urlshortener: DEBUG
+    io.etcd: DEBUG
+    org.redisson: INFO

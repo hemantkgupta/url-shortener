@@ -1,0 +1,379 @@
+{
+  "title": "Redirect Service",
+  "description": "Key performance indicators for the URL shortener redirect-service: latency, cache tiers, bloom filter, and throughput.",
+  "uid": "url-shortener-redirect-service",
+  "version": 1,
+  "schemaVersion": 36,
+  "style": "dark",
+  "timezone": "browser",
+  "editable": true,
+  "graphTooltip": 1,
+  "refresh": "10s",
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  },
+  "timepicker": {
+    "refresh_intervals": ["5s", "10s", "30s", "1m", "5m"],
+    "time_options": ["5m", "15m", "1h", "6h", "12h", "24h", "2d", "7d"]
+  },
+  "tags": ["url-shortener", "redirect-service", "performance"],
+  "templating": {
+    "list": [
+      {
+        "name": "instance",
+        "type": "query",
+        "datasource": "Prometheus",
+        "query": "label_values(redirect_latency_seconds_count, instance)",
+        "label": "Instance",
+        "multi": true,
+        "includeAll": true,
+        "current": { "text": "All", "value": "$__all" }
+      }
+    ]
+  },
+  "annotations": {
+    "list": [
+      {
+        "name": "Deployments",
+        "datasource": "Prometheus",
+        "enable": true,
+        "expr": "changes(process_start_time_seconds{job=\"redirect-service\"}[2m]) > 0",
+        "titleFormat": "Restart / Deploy",
+        "iconColor": "orange"
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "title": "Redirect p99 Latency (ms)",
+      "description": "99th-percentile end-to-end redirect latency. SLO target: < 50 ms.",
+      "type": "timeseries",
+      "gridPos": { "x": 0, "y": 0, "w": 12, "h": 8 },
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green",  "value": null },
+              { "color": "yellow", "value": 40 },
+              { "color": "red",    "value": 50 }
+            ]
+          },
+          "color": { "mode": "thresholds" },
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "spanNulls": true
+          }
+        }
+      },
+      "options": {
+        "tooltip": { "mode": "multi" },
+        "legend": { "displayMode": "table", "placement": "bottom" }
+      },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.99, sum(rate(redirect_latency_seconds_bucket{job=\"redirect-service\"}[1m])) by (le)) * 1000",
+          "legendFormat": "p99 latency",
+          "refId": "A"
+        },
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(redirect_latency_seconds_bucket{job=\"redirect-service\"}[1m])) by (le)) * 1000",
+          "legendFormat": "p95 latency",
+          "refId": "B"
+        },
+        {
+          "expr": "histogram_quantile(0.50, sum(rate(redirect_latency_seconds_bucket{job=\"redirect-service\"}[1m])) by (le)) * 1000",
+          "legendFormat": "p50 latency",
+          "refId": "C"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "title": "Redis Cache Hit Rate (%)",
+      "description": "Percentage of redirect lookups served from Redis (L1 cache). Target: > 90%.",
+      "type": "timeseries",
+      "gridPos": { "x": 12, "y": 0, "w": 12, "h": 8 },
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "min": 0,
+          "max": 100,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red",    "value": null },
+              { "color": "yellow", "value": 85 },
+              { "color": "green",  "value": 90 }
+            ]
+          },
+          "color": { "mode": "thresholds" },
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 15,
+            "spanNulls": true
+          }
+        }
+      },
+      "options": {
+        "tooltip": { "mode": "multi" },
+        "legend": { "displayMode": "table", "placement": "bottom" }
+      },
+      "targets": [
+        {
+          "expr": "sum(rate(redirect_cache_hits_total{job=\"redirect-service\", tier=\"redis\"}[1m])) / sum(rate(redirect_cache_hits_total{job=\"redirect-service\"}[1m])) * 100",
+          "legendFormat": "Redis hit rate",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "title": "DB Fallback Rate (RPS)",
+      "description": "Rate of requests falling through to ScyllaDB after a Redis cache miss.",
+      "type": "timeseries",
+      "gridPos": { "x": 0, "y": 8, "w": 8, "h": 7 },
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green",  "value": null },
+              { "color": "yellow", "value": 50 },
+              { "color": "red",    "value": 200 }
+            ]
+          },
+          "color": { "mode": "palette-classic" },
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "spanNulls": true
+          }
+        }
+      },
+      "options": {
+        "tooltip": { "mode": "multi" },
+        "legend": { "displayMode": "list", "placement": "bottom" }
+      },
+      "targets": [
+        {
+          "expr": "sum(rate(redirect_cache_hits_total{job=\"redirect-service\", tier=\"db\"}[1m]))",
+          "legendFormat": "DB fallback RPS",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "title": "Bloom Filter Reject Rate (RPS)",
+      "description": "Rate at which the Bloom filter short-circuits requests for keys that definitely do not exist.",
+      "type": "timeseries",
+      "gridPos": { "x": 8, "y": 8, "w": 8, "h": 7 },
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green",  "value": null },
+              { "color": "yellow", "value": 100 },
+              { "color": "red",    "value": 500 }
+            ]
+          },
+          "color": { "mode": "palette-classic" },
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "spanNulls": true
+          }
+        }
+      },
+      "options": {
+        "tooltip": { "mode": "multi" },
+        "legend": { "displayMode": "list", "placement": "bottom" }
+      },
+      "targets": [
+        {
+          "expr": "sum(rate(redirect_bloom_filter_rejects_total{job=\"redirect-service\"}[1m]))",
+          "legendFormat": "Bloom filter rejects/s",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "title": "Total Redirect RPS",
+      "description": "Aggregate redirect requests per second across all instances.",
+      "type": "timeseries",
+      "gridPos": { "x": 16, "y": 8, "w": 8, "h": 7 },
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "color": { "mode": "palette-classic" },
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 20,
+            "spanNulls": true
+          }
+        }
+      },
+      "options": {
+        "tooltip": { "mode": "multi" },
+        "legend": { "displayMode": "list", "placement": "bottom" }
+      },
+      "targets": [
+        {
+          "expr": "sum(rate(redirect_requests_total{job=\"redirect-service\"}[1m]))",
+          "legendFormat": "Total RPS",
+          "refId": "A"
+        },
+        {
+          "expr": "sum(rate(redirect_requests_total{job=\"redirect-service\", status=\"302\"}[1m]))",
+          "legendFormat": "302 (found) RPS",
+          "refId": "B"
+        },
+        {
+          "expr": "sum(rate(redirect_requests_total{job=\"redirect-service\", status=\"404\"}[1m]))",
+          "legendFormat": "404 (not found) RPS",
+          "refId": "C"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "title": "p99 Latency — Current Value",
+      "description": "Instantaneous p99 redirect latency. SLO: < 50 ms.",
+      "type": "stat",
+      "gridPos": { "x": 0, "y": 15, "w": 4, "h": 4 },
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green",  "value": null },
+              { "color": "yellow", "value": 40 },
+              { "color": "red",    "value": 50 }
+            ]
+          },
+          "color": { "mode": "thresholds" }
+        }
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"] },
+        "orientation": "auto",
+        "graphMode": "none",
+        "colorMode": "background"
+      },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.99, sum(rate(redirect_latency_seconds_bucket{job=\"redirect-service\"}[2m])) by (le)) * 1000",
+          "legendFormat": "p99 ms",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "title": "Redis Hit Rate — Current",
+      "description": "Current Redis cache hit rate percentage.",
+      "type": "stat",
+      "gridPos": { "x": 4, "y": 15, "w": 4, "h": 4 },
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "min": 0,
+          "max": 100,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red",    "value": null },
+              { "color": "yellow", "value": 85 },
+              { "color": "green",  "value": 90 }
+            ]
+          },
+          "color": { "mode": "thresholds" }
+        }
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"] },
+        "orientation": "auto",
+        "graphMode": "none",
+        "colorMode": "background"
+      },
+      "targets": [
+        {
+          "expr": "sum(rate(redirect_cache_hits_total{job=\"redirect-service\", tier=\"redis\"}[2m])) / sum(rate(redirect_cache_hits_total{job=\"redirect-service\"}[2m])) * 100",
+          "legendFormat": "Redis hit %",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "title": "Total RPS — Current",
+      "description": "Current aggregate redirect requests per second.",
+      "type": "stat",
+      "gridPos": { "x": 8, "y": 15, "w": 4, "h": 4 },
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "color": { "mode": "palette-classic" }
+        }
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"] },
+        "orientation": "auto",
+        "graphMode": "none",
+        "colorMode": "value"
+      },
+      "targets": [
+        {
+          "expr": "sum(rate(redirect_requests_total{job=\"redirect-service\"}[1m]))",
+          "legendFormat": "RPS",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "title": "Bloom Filter Rejects — Current",
+      "description": "Current Bloom filter rejection rate (requests/s for non-existent keys).",
+      "type": "stat",
+      "gridPos": { "x": 12, "y": 15, "w": 4, "h": 4 },
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "color": { "mode": "palette-classic" }
+        }
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"] },
+        "orientation": "auto",
+        "graphMode": "none",
+        "colorMode": "value"
+      },
+      "targets": [
+        {
+          "expr": "sum(rate(redirect_bloom_filter_rejects_total{job=\"redirect-service\"}[1m]))",
+          "legendFormat": "Bloom rejects/s",
+          "refId": "A"
+        }
+      ]
+    }
+  ]
+}

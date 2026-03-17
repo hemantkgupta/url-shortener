@@ -1,0 +1,51 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: url-shortener
+  labels:
+    name: url-shortener
+    app.kubernetes.io/name: url-shortener
+    app.kubernetes.io/managed-by: kubectl
+  annotations:
+    # Enforce resource quotas at namespace level
+    scheduler.alpha.kubernetes.io/node-selector: ""
+---
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: url-shortener-quota
+  namespace: url-shortener
+spec:
+  hard:
+    requests.cpu: "20"
+    requests.memory: 40Gi
+    limits.cpu: "40"
+    limits.memory: 80Gi
+    pods: "100"
+    services: "20"
+    persistentvolumeclaims: "20"
+---
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: url-shortener-limits
+  namespace: url-shortener
+spec:
+  limits:
+    - type: Container
+      default:
+        cpu: 500m
+        memory: 512Mi
+      defaultRequest:
+        cpu: 100m
+        memory: 128Mi
+      max:
+        cpu: "4"
+        memory: 8Gi
+      min:
+        cpu: 50m
+        memory: 64Mi
+    - type: Pod
+      max:
+        cpu: "8"
+        memory: 16Gi

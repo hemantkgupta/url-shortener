@@ -1,0 +1,167 @@
+# =============================================================================
+# alerts.yml — Prometheus / SigNoz AlertManager rules
+# =============================================================================
+# Covers the following alert categories:
+#   1. Redirect service latency (p99 warning + critical)
+#   2. Redis cache hit rate (warning)
+#   3. Kafka consumer lag (warning)
+#   4. Write service error rate (critical)
+#
+# Deploy:
+#   - Prometheus: place in a rules/ directory referenced by prometheus.yml
+#   - SigNoz:     import via the SigNoz Alert Manager UI or API
+#
+# All thresholds are tuned for a single-node dev/staging environment.
+# Review and tighten for production multi-node deployments.
+# =============================================================================
+
+groups:
+
+  # ---------------------------------------------------------------------------
+  # Redirect Service — Latency
+  # ---------------------------------------------------------------------------
+  - name: redirect_service_latency
+    interval: 15s
+    rules:
+
+      # SLO: p99 redirect latency must stay below 50 ms
+      # Warning fires when p99 creeps above 40 ms for 2 consecutive minutes
+      - alert: redirect_p99_warning
+        expr: >
+          histogram_quantile(
+            0.99,
+            sum(rate(redirect_latency_seconds_bucket{job="redirect-service"}[1m])) by (le)
+          ) * 1000 > 40
+        for: 2m
+        labels:
+          severity: warning
+          service: redirect-service
+          team: platform
+        annotations:
+          summary: "Redirect p99 latency is elevated (> 40 ms)"
+          description: >
+            The 99th-percentile redirect latency has been above 40 ms for the
+            past 2 minutes.  Current value: {{ $value | humanizeDuration }}.
+            This approaches the 50 ms SLO threshold.
+          runbook_url: "https://wiki.example.com/runbooks/redirect-latency"
+          dashboard_url: "http://localhost:3301/dashboards/url-shortener-redirect-service"
+
+      # Critical fires when p99 exceeds 50 ms for 1 minute — SLO breach
+      - alert: redirect_p99_critical
+        expr: >
+          histogram_quantile(
+            0.99,
+            sum(rate(redirect_latency_seconds_bucket{job="redirect-service"}[1m])) by (le)
+          ) * 1000 > 50
+        for: 1m
+        labels:
+          severity: critical
+          service: redirect-service
+          team: platform
+        annotations:
+          summary: "CRITICAL: Redirect p99 latency breached 50 ms SLO"
+          description: >
+            The 99th-percentile redirect latency has exceeded the 50 ms SLO
+            for 1 minute.  Current value: {{ $value | humanizeDuration }}.
+            Investigate Redis cache health, ScyllaDB read latency, and JVM GC.
+          runbook_url: "https://wiki.example.com/runbooks/redirect-latency"
+          dashboard_url: "http://localhost:3301/dashboards/url-shortener-redirect-service"
+
+  # ---------------------------------------------------------------------------
+  # Redirect Service — Cache Health
+  # ---------------------------------------------------------------------------
+  - name: redirect_service_cache
+    interval: 30s
+    rules:
+
+      # Redis cache hit rate below 90% indicates cache eviction pressure,
+      # capacity issues, or high cold-start traffic.
+      - alert: redis_cache_hit_rate_low
+        expr: >
+          (
+            sum(rate(redirect_cache_hits_total{job="redirect-service", tier="redis"}[2m]))
+            /
+            sum(rate(redirect_cache_hits_total{job="redirect-service"}[2m]))
+          ) * 100 < 90
+        for: 5m
+        labels:
+          severity: warning
+          service: redirect-service
+          component: redis
+          team: platform
+        annotations:
+          summary: "Redis cache hit rate dropped below 90%"
+          description: >
+            The Redis cache hit rate has been below 90% for the past 5 minutes.
+            Current rate: {{ $value | printf "%.1f" }}%.
+            This will increase ScyllaDB read load and redirect latency.
+            Check Redis memory usage, eviction policy, and TTL settings.
+          runbook_url: "https://wiki.example.com/runbooks/redis-cache-hit-rate"
+
+  # ---------------------------------------------------------------------------
+  # Kafka Consumer Lag
+  # ---------------------------------------------------------------------------
+  - name: kafka_consumer_lag
+    interval: 30s
+    rules:
+
+      # Analytics consumer lag growing beyond 1 M events means the
+      # analytics-service cannot keep up with redirect events — backlog builds.
+      - alert: kafka_consumer_lag_high
+        expr: >
+          sum(kafka_consumer_group_lag{
+            group=~"analytics-service.*",
+            topic=~"redirect-events.*"
+          }) > 1000000
+        for: 5m
+        labels:
+          severity: warning
+          service: analytics-service
+          component: kafka
+          team: platform
+        annotations:
+          summary: "Kafka consumer lag exceeded 1 million events"
+          description: >
+            The analytics-service consumer group lag on the redirect-events
+            topic has been above 1,000,000 messages for 5 minutes.
+            Current lag: {{ $value | humanize }} events.
+            Check analytics-service throughput, ClickHouse write performance,
+            and Kafka partition count.
+          runbook_url: "https://wiki.example.com/runbooks/kafka-consumer-lag"
+
+  # ---------------------------------------------------------------------------
+  # Write Service — Error Rate
+  # ---------------------------------------------------------------------------
+  - name: write_service_errors
+    interval: 15s
+    rules:
+
+      # 5xx error rate > 1% on the write path signals persistent backend
+      # failures (ScyllaDB, KGS, Redis) or application bugs.
+      - alert: write_service_error_rate_high
+        expr: >
+          (
+            sum(rate(http_server_requests_seconds_count{
+              job="write-service",
+              status=~"5.."
+            }[1m]))
+            /
+            sum(rate(http_server_requests_seconds_count{
+              job="write-service"
+            }[1m]))
+          ) * 100 > 1
+        for: 1m
+        labels:
+          severity: critical
+          service: write-service
+          team: platform
+        annotations:
+          summary: "CRITICAL: Write service 5xx error rate exceeded 1%"
+          description: >
+            The write-service is returning HTTP 5xx errors at a rate above 1%
+            for the past minute.
+            Current error rate: {{ $value | printf "%.2f" }}%.
+            Investigate ScyllaDB connectivity, key-generation-service health,
+            Redis availability, and application logs.
+          runbook_url: "https://wiki.example.com/runbooks/write-service-errors"
+          dashboard_url: "http://localhost:3301/dashboards/url-shortener-write-service"

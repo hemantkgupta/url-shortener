@@ -1,0 +1,60 @@
+server:
+  port: 8083
+
+spring:
+  application:
+    name: analytics-service
+  threads:
+    virtual:
+      enabled: true
+  profiles:
+    active: dev
+
+# ── Analytics service custom properties ──────────────────────────────────────
+analytics:
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    group-id: analytics-flink
+    topic:
+      click-events: click.events
+
+  clickhouse:
+    url: ${CLICKHOUSE_URL:jdbc:clickhouse://localhost:8123/analytics}
+    username: ${CLICKHOUSE_USER:default}
+    password: ${CLICKHOUSE_PASSWORD:}
+
+  redis:
+    host: ${REDIS_HOST:localhost}
+    port: ${REDIS_PORT:6379}
+
+  flink:
+    embedded: ${FLINK_EMBEDDED:true}
+    checkpoint-interval-ms: 10000
+    window-size-seconds: 10
+
+  cassandra:
+    contact-points: ${SCYLLA_CONTACT_POINTS:localhost}
+    keyspace: url_shortener
+    local-datacenter: ${SCYLLA_DATACENTER:datacenter1}
+
+# ── Actuator / management ─────────────────────────────────────────────────────
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  endpoint:
+    health:
+      show-details: always
+    prometheus:
+      enabled: true
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+
+# ── OpenTelemetry / SigNoz ────────────────────────────────────────────────────
+# These are read by the OTel Java agent; set them as env vars in production.
+# OTEL_EXPORTER_OTLP_ENDPOINT=http://<signoz-host>:4317
+# OTEL_SERVICE_NAME=analytics-service
+# OTEL_EXPORTER_OTLP_HEADERS=signoz-ingestion-key=<key>

@@ -1,0 +1,81 @@
+---
+# =============================================================================
+# PodDisruptionBudgets — prevent too many pods being evicted simultaneously
+# during node drains, rolling upgrades, or cluster maintenance.
+# =============================================================================
+
+# ---------------------------------------------------------------------------
+# redirect-service PDB — must keep at least 2 pods running at all times
+# (handles 100k+ RPS; any outage is user-facing)
+# ---------------------------------------------------------------------------
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: redirect-service-pdb
+  namespace: url-shortener
+  labels:
+    app: redirect-service
+    app.kubernetes.io/name: redirect-service
+    app.kubernetes.io/component: redirect
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app: redirect-service
+---
+# ---------------------------------------------------------------------------
+# write-service PDB — keep at least 1 pod running during disruptions
+# (writes are less latency-critical than redirects, but still user-facing)
+# ---------------------------------------------------------------------------
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: write-service-pdb
+  namespace: url-shortener
+  labels:
+    app: write-service
+    app.kubernetes.io/name: write-service
+    app.kubernetes.io/component: write
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: write-service
+---
+# ---------------------------------------------------------------------------
+# kgs PDB — keep at least 1 KGS pod running; losing all instances would
+# stall URL creation (write-service cannot obtain new short-code batches)
+# ---------------------------------------------------------------------------
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: kgs-pdb
+  namespace: url-shortener
+  labels:
+    app: kgs
+    app.kubernetes.io/name: kgs
+    app.kubernetes.io/component: key-generation
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: kgs
+---
+# ---------------------------------------------------------------------------
+# analytics-service PDB — Kafka consumer; brief disruption causes lag,
+# not data loss; keep at least 1 running
+# ---------------------------------------------------------------------------
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: analytics-service-pdb
+  namespace: url-shortener
+  labels:
+    app: analytics-service
+    app.kubernetes.io/name: analytics-service
+    app.kubernetes.io/component: analytics
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: analytics-service

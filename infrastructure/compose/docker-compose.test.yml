@@ -1,0 +1,172 @@
+version: "3.9"
+
+# =============================================================================
+# URL Shortener — CI / Integration-Test Stack
+# =============================================================================
+# Lightweight: only the data services needed for tests.
+# No monitoring (SigNoz), no UI tooling (Kafka-UI, RedisInsight).
+# Standalone file — does NOT extend docker-compose.dev.yml.
+# =============================================================================
+
+networks:
+  url-shortener-test-net:
+    driver: bridge
+
+volumes:
+  scylla-test-data:
+    driver: local
+  redis-test-data:
+    driver: local
+  kafka-test-data:
+    driver: local
+  clickhouse-test-data:
+    driver: local
+  etcd-test-data:
+    driver: local
+
+services:
+
+  # ---------------------------------------------------------------------------
+  # ScyllaDB — Single node, minimal resources for CI
+  # ---------------------------------------------------------------------------
+  scylladb:
+    image: scylladb/scylla:6.1
+    container_name: scylladb-test
+    command: >
+      --smp 1
+      --memory 256M
+      --overprovisioned 1
+      --developer-mode 1
+      --broadcast-address scylladb
+      --listen-address 0.0.0.0
+      --broadcast-rpc-address scylladb
+    ports:
+      - "9042:9042"
+    volumes:
+      - scylla-test-data:/var/lib/scylla
+    networks:
+      - url-shortener-test-net
+    healthcheck:
+      test: ["CMD-SHELL", "cqlsh --execute \"SELECT now() FROM system.local\" 2>/dev/null || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 15
+      start_period: 90s
+
+  # ---------------------------------------------------------------------------
+  # Redis Stack — includes RedisBloom and RedisJSON modules
+  # ---------------------------------------------------------------------------
+  redis:
+    image: redis/redis-stack:latest
+    container_name: redis-test
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-test-data:/data
+    networks:
+      - url-shortener-test-net
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+    environment:
+      - REDIS_ARGS=--save "" --loglevel warning
+
+  # ---------------------------------------------------------------------------
+  # etcd — Distributed coordination for KGS
+  # ---------------------------------------------------------------------------
+  etcd:
+    image: bitnami/etcd:3.5
+    container_name: etcd-test
+    ports:
+      - "2379:2379"
+      - "2380:2380"
+    volumes:
+      - etcd-test-data:/bitnami/etcd
+    networks:
+      - url-shortener-test-net
+    environment:
+      - ALLOW_NONE_AUTHENTICATION=yes
+      - ETCD_NAME=etcd0
+      - ETCD_ADVERTISE_CLIENT_URLS=http://etcd:2379
+      - ETCD_LISTEN_CLIENT_URLS=http://0.0.0.0:2379
+      - ETCD_INITIAL_ADVERTISE_PEER_URLS=http://etcd:2380
+      - ETCD_LISTEN_PEER_URLS=http://0.0.0.0:2380
+      - ETCD_INITIAL_CLUSTER=etcd0=http://etcd:2380
+      - ETCD_INITIAL_CLUSTER_STATE=new
+      - ETCD_INITIAL_CLUSTER_TOKEN=url-shortener-test-cluster
+      - ETCD_DATA_DIR=/bitnami/etcd/data
+    healthcheck:
+      test: ["CMD", "etcdctl", "endpoint", "health", "--endpoints=http://localhost:2379"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
+  # ---------------------------------------------------------------------------
+  # Kafka — KRaft mode, single broker
+  # ---------------------------------------------------------------------------
+  kafka:
+    image: apache/kafka:3.8.0
+    container_name: kafka-test
+    ports:
+      - "9092:9092"
+    volumes:
+      - kafka-test-data:/var/lib/kafka/data
+    networks:
+      - url-shortener-test-net
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_LOG_DIRS: /var/lib/kafka/data
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_DEFAULT_REPLICATION_FACTOR: 1
+      KAFKA_MIN_INSYNC_REPLICAS: 1
+      KAFKA_LOG_RETENTION_HOURS: 1
+      CLUSTER_ID: "MkU3OEVBNTcwNTJENDM2Qg"
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --list 2>/dev/null || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
+
+  # ---------------------------------------------------------------------------
+  # ClickHouse — Analytics backend for integration tests
+  # ---------------------------------------------------------------------------
+  clickhouse:
+    image: clickhouse/clickhouse-server:24.8
+    container_name: clickhouse-test
+    ports:
+      - "8123:8123"
+      - "9000:9000"
+    volumes:
+      - clickhouse-test-data:/var/lib/clickhouse
+    networks:
+      - url-shortener-test-net
+    environment:
+      CLICKHOUSE_DB: analytics
+      CLICKHOUSE_USER: default
+      CLICKHOUSE_PASSWORD: ""
+      CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: 1
+    healthcheck:
+      test: ["CMD-SHELL", "clickhouse-client --query 'SELECT 1' 2>/dev/null || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    ulimits:
+      nofile:
+        soft: 262144
+        hard: 262144

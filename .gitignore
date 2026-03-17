@@ -1,0 +1,141 @@
+# =============================================================================
+# Gradle
+# =============================================================================
+.gradle/
+build/
+out/
+!gradle/wrapper/gradle-wrapper.jar
+!**/src/main/**/build/
+!**/src/test/**/build/
+
+# Spring Boot
+spring-shell.log
+
+# Gradle wrapper verification
+gradle/wrapper/gradle-wrapper.properties.bak
+
+# =============================================================================
+# Java
+# =============================================================================
+*.class
+*.jar
+*.war
+*.ear
+*.nar
+hs_err_pid*
+replay_pid*
+
+# OpenTelemetry agent
+opentelemetry-javaagent.jar
+
+# =============================================================================
+# Node / npm / Frontend
+# =============================================================================
+node_modules/
+dist/
+dist-ssr/
+.pnp
+.pnp.js
+.yarn/install-state.gz
+frontend/.vite/
+frontend/coverage/
+
+# =============================================================================
+# IntelliJ IDEA
+# =============================================================================
+.idea/
+*.iml
+*.iws
+*.ipr
+out/
+.idea_modules/
+
+# =============================================================================
+# VS Code
+# =============================================================================
+.vscode/*
+!.vscode/extensions.json
+*.code-workspace
+.history/
+
+# =============================================================================
+# macOS
+# =============================================================================
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+._*
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+.AppleDB
+.AppleDesktop
+Network Trash Folder
+Temporary Items
+.apdisk
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+
+# =============================================================================
+# Environment / Secrets
+# =============================================================================
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env.*.local
+*.env
+
+# =============================================================================
+# Logs
+# =============================================================================
+*.log
+logs/
+log/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# =============================================================================
+# Test Coverage Reports
+# =============================================================================
+build/reports/
+coverage/
+.nyc_output/
+jacoco.exec
+*.exec
+
+# =============================================================================
+# Gatling / Performance Tests
+# =============================================================================
+infrastructure/performance-tests/results/
+infrastructure/performance-tests/target/
+
+# =============================================================================
+# Docker volumes / local data
+# =============================================================================
+infrastructure/compose/data/
+infrastructure/compose/volumes/
+docker-data/
+
+# =============================================================================
+# Misc
+# =============================================================================
+*.tmp
+*.bak
+*.swp
+*.swo
+*~
+.sass-cache/
+connect.lock
+typings/

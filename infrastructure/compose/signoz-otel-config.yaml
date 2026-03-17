@@ -1,0 +1,184 @@
+# =============================================================================
+# SigNoz OpenTelemetry Collector Configuration
+# =============================================================================
+# Receives OTLP traces and metrics from all url-shortener services,
+# enriches with resource attributes, and exports to SigNoz via ClickHouse.
+# =============================================================================
+
+extensions:
+  health_check:
+    endpoint: 0.0.0.0:13133
+  pprof:
+    endpoint: 0.0.0.0:1777
+  zpages:
+    endpoint: 0.0.0.0:55679
+
+receivers:
+  # ---------------------------------------------------------------------------
+  # OTLP receiver — accepts traces, metrics, and logs from application services
+  # ---------------------------------------------------------------------------
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+        max_recv_msg_size_mib: 16
+        keepalive:
+          server_parameters:
+            max_connection_idle: 11s
+            max_connection_age: 12s
+            max_connection_age_grace: 10s
+            time: 2h
+            timeout: 20s
+      http:
+        endpoint: 0.0.0.0:4318
+        cors:
+          allowed_origins:
+            - "http://*"
+            - "https://*"
+          allowed_headers:
+            - "*"
+          max_age: 7200
+
+  # Collect collector's own internal metrics
+  prometheus:
+    config:
+      scrape_configs:
+        - job_name: otel-collector
+          scrape_interval: 30s
+          static_configs:
+            - targets: ["0.0.0.0:8888"]
+
+processors:
+  # ---------------------------------------------------------------------------
+  # Batch processor — reduces export frequency, improves throughput
+  # ---------------------------------------------------------------------------
+  batch:
+    send_batch_size: 10000
+    send_batch_max_size: 11000
+    timeout: 10s
+
+  # ---------------------------------------------------------------------------
+  # Memory limiter — prevents OOM in the collector process
+  # ---------------------------------------------------------------------------
+  memory_limiter:
+    check_interval: 1s
+    limit_mib: 512
+    spike_limit_mib: 128
+
+  # ---------------------------------------------------------------------------
+  # Resource detector — enriches spans with host/container metadata
+  # ---------------------------------------------------------------------------
+  resourcedetection:
+    detectors: [env, docker, system]
+    timeout: 5s
+    override: false
+
+  # ---------------------------------------------------------------------------
+  # Resource processor — set deployment-level attributes on all telemetry
+  # ---------------------------------------------------------------------------
+  resource:
+    attributes:
+      - key: deployment.environment
+        value: development
+        action: upsert
+      - key: deployment.platform
+        value: docker-compose
+        action: upsert
+
+  # ---------------------------------------------------------------------------
+  # Attributes processor — enrich spans with service metadata
+  # ---------------------------------------------------------------------------
+  attributes:
+    actions:
+      - key: service.namespace
+        value: url-shortener
+        action: upsert
+
+  # ---------------------------------------------------------------------------
+  # Transform processor — normalize service.name when missing
+  # ---------------------------------------------------------------------------
+  transform:
+    error_mode: ignore
+    trace_statements:
+      - context: span
+        statements:
+          - set(attributes["http.url"], Concat([attributes["http.scheme"], "://", attributes["http.host"], attributes["http.target"]], "")) where attributes["http.url"] == nil
+
+exporters:
+  # ---------------------------------------------------------------------------
+  # SigNoz ClickHouse exporter — primary traces/metrics sink
+  # ---------------------------------------------------------------------------
+  clickhousetraces:
+    datasource: tcp://clickhouse:9000?database=signoz_traces&username=default&password=
+    migrations_path: /root/migrations
+    docker_multi_node_cluster: false
+    low_cardinal_exception_grouping: false
+    use_new_schema: true
+
+  clickhousemetricswrite:
+    endpoint: tcp://clickhouse:9000?database=signoz_metrics&username=default&password=
+    resource_to_telemetry_conversion:
+      enabled: true
+
+  clickhouselogsexporter:
+    dsn: tcp://clickhouse:9000?database=signoz_logs&username=default&password=
+    timeout: 10s
+    sending_queue:
+      queue_size: 100
+    retry_on_failure:
+      enabled: true
+      initial_interval: 5s
+      max_interval: 30s
+      max_elapsed_time: 300s
+
+  # Debug exporter for local troubleshooting (set verbosity: detailed for full spans)
+  debug:
+    verbosity: normal
+    sampling_initial: 5
+    sampling_thereafter: 200
+
+service:
+  extensions: [health_check, pprof, zpages]
+
+  pipelines:
+    # Traces pipeline
+    traces:
+      receivers: [otlp]
+      processors:
+        - memory_limiter
+        - resourcedetection
+        - resource
+        - attributes
+        - transform
+        - batch
+      exporters: [clickhousetraces]
+
+    # Metrics pipeline
+    metrics:
+      receivers: [otlp, prometheus]
+      processors:
+        - memory_limiter
+        - resourcedetection
+        - resource
+        - batch
+      exporters: [clickhousemetricswrite]
+
+    # Logs pipeline
+    logs:
+      receivers: [otlp]
+      processors:
+        - memory_limiter
+        - resourcedetection
+        - resource
+        - batch
+      exporters: [clickhouselogsexporter]
+
+  # Collector telemetry (self-observability)
+  telemetry:
+    logs:
+      level: "warn"
+      development: false
+      encoding: json
+    metrics:
+      level: detailed
+      address: 0.0.0.0:8888

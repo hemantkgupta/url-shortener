@@ -1,0 +1,42 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: redirect-service
+  threads:
+    virtual:
+      enabled: true   # Java 21 virtual threads for massive concurrency
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+
+redirect:
+  cassandra:
+    contact-points: ${CASSANDRA_CONTACT_POINTS:localhost}
+    port: ${CASSANDRA_PORT:9042}
+    keyspace: ${CASSANDRA_KEYSPACE:url_shortener}
+    datacenter: ${CASSANDRA_DATACENTER:datacenter1}
+  redis:
+    bloom-filter-key: url:bloom
+    url-key-prefix: "url:"
+    cache-ttl-seconds: 86400
+    xfetch-beta: 1.0
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    topic:
+      click-events: click.events
+  own-domain: ${OWN_DOMAIN:localhost}
+  ip-daily-salt: ${IP_DAILY_SALT:dev-salt-change-in-prod}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,prometheus,metrics
+  metrics:
+    tags:
+      application: redirect-service

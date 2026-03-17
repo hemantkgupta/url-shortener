@@ -1,0 +1,39 @@
+server:
+  port: 8081
+
+spring:
+  application:
+    name: key-generation-service
+  threads:
+    virtual:
+      enabled: true
+
+kgs:
+  etcd:
+    endpoints: ${ETCD_ENDPOINTS:http://localhost:2379}
+  redis:
+    address: ${REDIS_ADDRESS:redis://localhost:6379}
+  block-size: ${KGS_BLOCK_SIZE:10000}
+  region: ${KGS_REGION:local}
+  region-offsets:
+    local: 0
+    us-east: 1000000000000
+    eu-west: 2000000000000
+    ap-northeast: 3000000000000
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus,metrics
+  endpoint:
+    health:
+      show-details: always
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+
+logging:
+  pattern:
+    console: "%d{ISO8601} [%thread] %-5level %logger{36} - %msg%n"
