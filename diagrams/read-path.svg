@@ -1,67 +1,175 @@
-<svg viewBox="0 0 920 440" width="920" height="440"
+<svg viewBox="0 0 1060 576" width="1060" height="576"
   xmlns="http://www.w3.org/2000/svg"
   font-family="system-ui, -apple-system, sans-serif">
   <defs>
-    <marker id="ah" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
-      <polygon points="0 0, 8 3, 0 6" fill="#9CA3AF"/>
-    </marker>
-    <marker id="ah-g" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
-      <polygon points="0 0, 8 3, 0 6" fill="#10B981"/>
-    </marker>
-    <marker id="ah-r" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
-      <polygon points="0 0, 8 3, 0 6" fill="#EF4444"/>
-    </marker>
-    <marker id="ah-b" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
-      <polygon points="0 0, 8 3, 0 6" fill="#3B82F6"/>
-    </marker>
-    <marker id="ah-p" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
-      <polygon points="0 0, 8 3, 0 6" fill="#8B5CF6"/>
-    </marker>
-    <marker id="ah-o" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
-      <polygon points="0 0, 8 3, 0 6" fill="#F97316"/>
-    </marker>
+    <marker id="ah"   markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0,8 3,0 6" fill="#9CA3AF"/></marker>
+    <marker id="ah-g" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0,8 3,0 6" fill="#10B981"/></marker>
+    <marker id="ah-r" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0,8 3,0 6" fill="#EF4444"/></marker>
+    <marker id="ah-p" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0,8 3,0 6" fill="#8B5CF6"/></marker>
+    <marker id="ah-o" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0,8 3,0 6" fill="#F97316"/></marker>
   </defs>
-<rect x="10" y="10" width="900" height="420" rx="16" fill="#EFF6FF" stroke="#3B82F6" stroke-width="1.5"/>
-<rect x="22" y="148" width="90" height="100" rx="12" fill="#F9FAFB" stroke="#D1D5DB" stroke-width="1.5"/>
-<rect x="49" y="162" width="36" height="12" rx="3" fill="#F3F4F6" stroke="#9CA3AF" stroke-width="1.5"/><circle cx="75" cy="168" r="2.5" fill="#9CA3AF"/><rect x="49" y="178" width="36" height="12" rx="3" fill="#F3F4F6" stroke="#9CA3AF" stroke-width="1.5"/><circle cx="75" cy="184" r="2.5" fill="#9CA3AF"/>
-<text x="67" y="205" font-size="12" font-weight="bold" fill="#374151" text-anchor="middle" dominant-baseline="middle">Client</text>
-<text x="67" y="220" font-size="10" font-weight="normal" fill="#6B7280" text-anchor="middle" dominant-baseline="middle">GET /xyz123</text>
-<line x1="113" y1="195" x2="149" y2="195" stroke="#9CA3AF" stroke-width="1.5" marker-end="url(#ah)"/>
-<rect x="150" y="120" width="128" height="130" rx="12" fill="#ECFDF5" stroke="#10B981" stroke-width="2"/>
-<rect x="164" y="107" width="100" height="20" rx="10" fill="#10B981"/><text x="214" y="117" font-size="10" font-weight="bold" fill="#FFFFFF" text-anchor="middle" dominant-baseline="middle">L1 HIT: 301</text>
-<text x="214" y="162" font-size="14" font-weight="bold" fill="#064E3B" text-anchor="middle" dominant-baseline="middle">EDGE CDN</text>
-<text x="214" y="180" font-size="10" font-weight="normal" fill="#065F46" text-anchor="middle" dominant-baseline="middle">V8 Isolate Cache</text>
-<text x="320" y="188" font-size="11" font-weight="bold" fill="#F97316" text-anchor="middle" dominant-baseline="middle">MISS</text>
-<line x1="279" y1="195" x2="337" y2="195" stroke="#9CA3AF" stroke-width="1.5" marker-end="url(#ah)"/>
-<rect x="338" y="148" width="118" height="100" rx="12" fill="#FEF2F2" stroke="#FCA5A5" stroke-width="1.5"/>
-<path d="M397,152 L412,159 L412,174 Q412,187 397,192 Q382,187 382,174 L382,159 Z" fill="#FEE2E2" stroke="#EF4444" stroke-width="1.5"/>
-<text x="397" y="198" font-size="12" font-weight="bold" fill="#374151" text-anchor="middle" dominant-baseline="middle">Envoy Proxy</text>
-<text x="397" y="213" font-size="10" font-weight="normal" fill="#EF4444" text-anchor="middle" dominant-baseline="middle">Rate Limit + Route</text>
-<line x1="457" y1="195" x2="499" y2="195" stroke="#9CA3AF" stroke-width="1.5" marker-end="url(#ah)"/>
-<rect x="500" y="120" width="148" height="148" rx="12" fill="#EFF6FF" stroke="#3B82F6" stroke-width="2"/>
-<rect x="517" y="140" width="36" height="12" rx="3" fill="#DBEAFE" stroke="#3B82F6" stroke-width="1.5"/><circle cx="543" cy="146" r="2.5" fill="#3B82F6"/><rect x="517" y="156" width="36" height="12" rx="3" fill="#DBEAFE" stroke="#3B82F6" stroke-width="1.5"/><circle cx="543" cy="162" r="2.5" fill="#3B82F6"/>
-<text x="580" y="160" font-size="13" font-weight="bold" fill="#1E40AF" text-anchor="start" dominant-baseline="middle">Read Service</text>
-<text x="580" y="178" font-size="10" font-weight="normal" fill="#3B82F6" text-anchor="start" dominant-baseline="middle">302 Redirect</text>
-<text x="580" y="196" font-size="10" font-weight="normal" fill="#6B7280" text-anchor="start" dominant-baseline="middle">Kafka emit (async)</text>
-<text x="690" y="185" font-size="10" font-weight="bold" fill="#9CA3AF" text-anchor="middle" dominant-baseline="middle">LOOKUP</text>
-<line x1="648" y1="110" x2="648" y2="310" stroke="#D1D5DB" stroke-width="1"/>
-<line x1="648" y1="110" x2="699" y2="110" stroke="#8B5CF6" stroke-width="1.5" marker-end="url(#ah-p)"/>
-<line x1="648" y1="210" x2="699" y2="210" stroke="#EF4444" stroke-width="1.5" marker-end="url(#ah-r)"/>
-<line x1="648" y1="310" x2="699" y2="310" stroke="#9CA3AF" stroke-width="1.5" marker-end="url(#ah)"/>
-<rect x="700" y="68" width="168" height="84" rx="12" fill="#F5F3FF" stroke="#8B5CF6" stroke-width="1.5"/>
-<rect x="819" y="55" width="58" height="20" rx="10" fill="#8B5CF6"/><text x="848" y="65" font-size="10" font-weight="bold" fill="#FFFFFF" text-anchor="middle" dominant-baseline="middle">L2 HIT</text>
-<text x="784" y="102" font-size="12" font-weight="bold" fill="#5B21B6" text-anchor="middle" dominant-baseline="middle">Redis</text>
-<text x="784" y="118" font-size="10" font-weight="normal" fill="#7C3AED" text-anchor="middle" dominant-baseline="middle">Read-Through</text>
-<rect x="700" y="168" width="168" height="84" rx="12" fill="#FFF1F2" stroke="#FB7185" stroke-width="1.5"/>
-<rect x="819" y="155" width="58" height="20" rx="10" fill="#FB7185"/><text x="848" y="165" font-size="10" font-weight="bold" fill="#FFFFFF" text-anchor="middle" dominant-baseline="middle">GUARD</text>
-<text x="784" y="202" font-size="12" font-weight="bold" fill="#9F1239" text-anchor="middle" dominant-baseline="middle">Bloom Filter</text>
-<text x="784" y="218" font-size="10" font-weight="normal" fill="#FB7185" text-anchor="middle" dominant-baseline="middle">Check Exists</text>
-<rect x="700" y="268" width="168" height="84" rx="12" fill="#F9FAFB" stroke="#D1D5DB" stroke-width="1.5"/>
-<ellipse cx="730" cy="291" rx="20" ry="7" fill="#F3F4F6" stroke="#9CA3AF" stroke-width="1.5"/><rect x="710" y="291" width="40" height="24" fill="#F3F4F6" stroke="#9CA3AF" stroke-width="1.5"/><ellipse cx="730" cy="315" rx="20" ry="7" fill="#F3F4F6" stroke="#9CA3AF" stroke-width="1.5"/>
-<text x="800" y="300" font-size="12" font-weight="bold" fill="#374151" text-anchor="start" dominant-baseline="middle">Spanner DB</text>
-<text x="800" y="318" font-size="10" font-weight="normal" fill="#6B7280" text-anchor="start" dominant-baseline="middle">Stale Read OK</text>
-<rect x="310" y="350" width="248" height="58" rx="12" fill="#FFF7ED" stroke="#F97316" stroke-width="1.5"/>
-<text x="434" y="372" font-size="12" font-weight="bold" fill="#9A3412" text-anchor="middle" dominant-baseline="middle">Kafka Analytics Topic</text>
-<text x="434" y="389" font-size="10" font-weight="normal" fill="#F97316" text-anchor="middle" dominant-baseline="middle">Async click event logging</text>
-<line x1="574" y1="268" x2="480" y2="350" stroke="#F97316" stroke-width="1.5" stroke-dasharray="5,3" marker-end="url(#ah-o)"/>
+
+  <!-- ── Background ── -->
+  <rect x="10" y="10" width="1040" height="556" rx="16" fill="#EFF6FF" stroke="#3B82F6" stroke-width="1.5"/>
+  <text x="530" y="36" font-size="14" font-weight="bold" fill="#1E40AF" text-anchor="middle">URL Shortener — Read Path · 1.15M RPS Total</text>
+
+  <!-- ══════════════════════════════════════════════════════════════
+       CLIENT
+  ══════════════════════════════════════════════════════════════ -->
+  <rect x="20" y="248" width="88" height="78" rx="10" fill="#F9FAFB" stroke="#D1D5DB" stroke-width="1.5"/>
+  <rect x="34" y="258" width="58" height="36" rx="4" fill="#E5E7EB" stroke="#9CA3AF" stroke-width="1"/>
+  <rect x="26" y="294" width="74" height="5"  rx="2" fill="#D1D5DB"/>
+  <text x="64" y="316" font-size="11" font-weight="bold" fill="#374151" text-anchor="middle">Client</text>
+  <text x="64" y="330" font-size="9"  fill="#6B7280" text-anchor="middle">GET /{key}</text>
+
+  <!-- Client → CDN -->
+  <line x1="108" y1="282" x2="156" y2="282" stroke="#9CA3AF" stroke-width="1.5" marker-end="url(#ah)"/>
+
+  <!-- ══════════════════════════════════════════════════════════════
+       CDN EDGE  (L1)
+  ══════════════════════════════════════════════════════════════ -->
+  <rect x="157" y="150" width="168" height="186" rx="12" fill="#ECFDF5" stroke="#10B981" stroke-width="2"/>
+  <!-- badge -->
+  <rect x="172" y="138" width="138" height="20" rx="10" fill="#10B981"/>
+  <text x="241" y="148" font-size="10" font-weight="bold" fill="#FFF" text-anchor="middle">L1 · ~920K RPS (80%)</text>
+  <!-- globe -->
+  <circle cx="194" cy="202" r="16" fill="none" stroke="#10B981" stroke-width="1.5"/>
+  <ellipse cx="194" cy="202" rx="7" ry="16" fill="none" stroke="#10B981" stroke-width="1"/>
+  <line x1="178" y1="202" x2="210" y2="202" stroke="#10B981" stroke-width="1"/>
+  <!-- labels -->
+  <text x="222" y="193" font-size="13" font-weight="bold" fill="#064E3B">CDN Edge</text>
+  <text x="222" y="209" font-size="9"  fill="#065F46">Cloudflare / Fastly</text>
+  <text x="222" y="222" font-size="9"  fill="#065F46">300 PoPs · TTL 1 hr</text>
+  <text x="241" y="252" font-size="9"  fill="#059669" text-anchor="middle">Cache-Tag purge &lt;5 s</text>
+  <text x="241" y="266" font-size="9"  fill="#059669" text-anchor="middle">on link delete / update</text>
+  <!-- MISS label + arrow -->
+  <text x="241" y="308" font-size="10" font-weight="bold" fill="#F97316" text-anchor="middle">MISS →</text>
+  <text x="241" y="321" font-size="9"  fill="#9CA3AF" text-anchor="middle">~230K RPS (20%)</text>
+  <line x1="325" y1="282" x2="370" y2="282" stroke="#F97316" stroke-width="2" marker-end="url(#ah-o)"/>
+
+  <!-- CDN HIT arc back to client (above) -->
+  <path d="M 157 178 Q 96 92 108 272" stroke="#10B981" stroke-width="2" fill="none" stroke-dasharray="6,3" marker-end="url(#ah-g)"/>
+  <rect x="26" y="86" width="138" height="36" rx="8" fill="#D1FAE5" stroke="#10B981" stroke-width="1"/>
+  <text x="95" y="100" font-size="10" font-weight="bold" fill="#065F46" text-anchor="middle">✅ CDN HIT → 302</text>
+  <text x="95" y="115" font-size="9"  fill="#059669" text-anchor="middle">&lt;5 ms · client never reaches origin</text>
+
+  <!-- ══════════════════════════════════════════════════════════════
+       ENVOY
+  ══════════════════════════════════════════════════════════════ -->
+  <rect x="371" y="248" width="114" height="70" rx="10" fill="#FEF2F2" stroke="#FCA5A5" stroke-width="1.5"/>
+  <path d="M398,257 L408,262 L408,273 Q408,281 398,285 Q388,281 388,273 L388,262 Z" fill="#FEE2E2" stroke="#EF4444" stroke-width="1.5"/>
+  <text x="422" y="269" font-size="11" font-weight="bold" fill="#374151">Envoy</text>
+  <text x="422" y="284" font-size="9"  fill="#EF4444">Rate Limit</text>
+  <text x="422" y="297" font-size="9"  fill="#9CA3AF">Token Bucket</text>
+  <!-- Envoy → redirect-service -->
+  <line x1="485" y1="282" x2="532" y2="282" stroke="#9CA3AF" stroke-width="1.5" marker-end="url(#ah)"/>
+
+  <!-- ══════════════════════════════════════════════════════════════
+       REDIRECT-SERVICE  (big outer box)
+  ══════════════════════════════════════════════════════════════ -->
+  <rect x="533" y="58" width="497" height="460" rx="14" fill="#EFF6FF" stroke="#3B82F6" stroke-width="2.5"/>
+  <!-- service badge -->
+  <rect x="588" y="46" width="240" height="22" rx="11" fill="#3B82F6"/>
+  <text x="708" y="57" font-size="11" font-weight="bold" fill="#FFF" text-anchor="middle">redirect-service · Java 21 · Virtual Threads</text>
+  <!-- note under badge -->
+  <text x="708" y="78" font-size="9" fill="#6B7280" text-anchor="middle">⚡ Bloom filter is the FIRST check at the origin — runs only on CDN misses (~230K RPS), never before CDN</text>
+
+  <!-- ─────────────────────────────────────────────
+       TIER 1 — BLOOM FILTER  (runs FIRST)
+  ───────────────────────────────────────────── -->
+  <rect x="549" y="88" width="466" height="122" rx="10" fill="#FFF1F2" stroke="#FB7185" stroke-width="2"/>
+  <!-- badge -->
+  <rect x="864" y="76" width="82" height="20" rx="10" fill="#FB7185"/>
+  <text x="905" y="86" font-size="10" font-weight="bold" fill="#FFF" text-anchor="middle">① RUNS FIRST</text>
+  <!-- overlapping-circles icon -->
+  <circle cx="573" cy="142" r="13" fill="#FEE2E2" stroke="#FB7185" stroke-width="1.5" opacity="0.75"/>
+  <circle cx="585" cy="142" r="13" fill="#FEE2E2" stroke="#FB7185" stroke-width="1.5" opacity="0.75"/>
+  <circle cx="579" cy="131" r="13" fill="#FEE2E2" stroke="#FB7185" stroke-width="1.5" opacity="0.75"/>
+  <!-- text -->
+  <text x="610" y="105" font-size="12" font-weight="bold" fill="#9F1239">RedisBloom — Bloom Filter Gate</text>
+  <text x="610" y="122" font-size="10" fill="#BE185D">BF.EXISTS kgs:allocated {shortKey} · 32 GB · ~10 bits/key · &lt;1% false-positive · 26B keys</text>
+  <text x="610" y="138" font-size="10" fill="#6B7280">Protects Redis + ScyllaDB from bot / cache-penetration attacks</text>
+  <text x="610" y="154" font-size="10" fill="#6B7280">Fake / random keys → immediate 404 · Redis and ScyllaDB are NEVER touched</text>
+  <!-- ABSENT exit badge -->
+  <rect x="610" y="164" width="162" height="22" rx="11" fill="#FEE2E2" stroke="#EF4444" stroke-width="1"/>
+  <text x="691" y="175" font-size="10" font-weight="bold" fill="#991B1B" text-anchor="middle">🔴 ABSENT → 404 to client</text>
+  <!-- left exit arrow -->
+  <line x1="549" y1="175" x2="534" y2="175" stroke="#EF4444" stroke-width="2" marker-end="url(#ah-r)"/>
+
+  <!-- arrow down: Bloom → Redis  ("may exist") -->
+  <line x1="782" y1="210" x2="782" y2="240" stroke="#9CA3AF" stroke-width="1.5" marker-end="url(#ah)"/>
+  <text x="798" y="229" font-size="9" font-weight="bold" fill="#059669">may exist ↓</text>
+
+  <!-- ─────────────────────────────────────────────
+       TIER 2 — REDIS  (L2 cache)
+  ───────────────────────────────────────────── -->
+  <rect x="549" y="241" width="466" height="112" rx="10" fill="#F5F3FF" stroke="#8B5CF6" stroke-width="2"/>
+  <!-- badge -->
+  <rect x="864" y="229" width="82" height="20" rx="10" fill="#8B5CF6"/>
+  <text x="905" y="239" font-size="10" font-weight="bold" fill="#FFF" text-anchor="middle">② L2 · ~228K RPS</text>
+  <!-- lightning icon -->
+  <polygon points="575,258 568,278 578,278 571,300 588,273 578,273" fill="#8B5CF6" stroke="#6D28D9" stroke-width="1"/>
+  <!-- text -->
+  <text x="602" y="262" font-size="12" font-weight="bold" fill="#5B21B6">Redis Cluster — L2 Cache</text>
+  <text x="602" y="278" font-size="10" fill="#7C3AED">GET url:{shortKey} · Lettuce async · XFetch probabilistic early-refresh · 24 h TTL</text>
+  <text x="602" y="294" font-size="10" fill="#7C3AED">512 GB / DC · 3-node sharded · absorbs ~228K RPS (99% of CDN misses)</text>
+  <text x="602" y="310" font-size="9"  fill="#9CA3AF">XFetch: early refresh prevents cache stampede on TTL expiry for viral links</text>
+  <!-- HIT exit badge -->
+  <rect x="602" y="320" width="176" height="22" rx="11" fill="#EDE9FE" stroke="#8B5CF6" stroke-width="1"/>
+  <text x="690" y="331" font-size="10" font-weight="bold" fill="#5B21B6" text-anchor="middle">🟢 HIT → 302 + async Kafka</text>
+  <!-- left exit arrow -->
+  <line x1="549" y1="331" x2="534" y2="331" stroke="#8B5CF6" stroke-width="2" marker-end="url(#ah-p)"/>
+
+  <!-- arrow down: Redis → ScyllaDB  ("miss") -->
+  <line x1="782" y1="353" x2="782" y2="383" stroke="#9CA3AF" stroke-width="1.5" marker-end="url(#ah)"/>
+  <text x="798" y="372" font-size="9" font-weight="bold" fill="#EF4444">miss ↓</text>
+
+  <!-- ─────────────────────────────────────────────
+       TIER 3 — SCYLLADB  (L3 primary store)
+  ───────────────────────────────────────────── -->
+  <rect x="549" y="384" width="466" height="120" rx="10" fill="#F9FAFB" stroke="#D1D5DB" stroke-width="2"/>
+  <!-- badge -->
+  <rect x="864" y="372" width="82" height="20" rx="10" fill="#6B7280"/>
+  <text x="905" y="382" font-size="10" font-weight="bold" fill="#FFF" text-anchor="middle">③ L3 · ~2K RPS</text>
+  <!-- cylinder icon -->
+  <ellipse cx="576" cy="412" rx="18" ry="6" fill="#E5E7EB" stroke="#9CA3AF" stroke-width="1.5"/>
+  <rect x="558" y="412" width="36" height="26" fill="#E5E7EB" stroke="#9CA3AF" stroke-width="1.5"/>
+  <ellipse cx="576" cy="438" rx="18" ry="6" fill="#E5E7EB" stroke="#9CA3AF" stroke-width="1.5"/>
+  <!-- text -->
+  <text x="607" y="404" font-size="12" font-weight="bold" fill="#374151">ScyllaDB — Primary Store</text>
+  <text x="607" y="420" font-size="10" fill="#6B7280">SELECT * FROM url_mapping WHERE short_key = ? · LOCAL_QUORUM · RF = 3</text>
+  <text x="607" y="436" font-size="10" fill="#6B7280">Only 0.2% of total reads reach here (~2K RPS) · 2-year default TTL</text>
+  <text x="607" y="452" font-size="9"  fill="#9CA3AF">FOUND → async warm Redis + publish Kafka · NOT FOUND / EXPIRED → 404 / 410</text>
+  <!-- response exit badge -->
+  <rect x="607" y="462" width="196" height="22" rx="11" fill="#F3F4F6" stroke="#9CA3AF" stroke-width="1"/>
+  <text x="705" y="473" font-size="10" font-weight="bold" fill="#374151" text-anchor="middle">FOUND → 302 · EXPIRED → 410</text>
+  <!-- left exit arrow -->
+  <line x1="549" y1="473" x2="534" y2="473" stroke="#9CA3AF" stroke-width="2" marker-end="url(#ah)"/>
+
+  <!-- ══════════════════════════════════════════════════════════════
+       ASYNC KAFKA / FLINK  (bottom bar)
+  ══════════════════════════════════════════════════════════════ -->
+  <rect x="188" y="524" width="428" height="52" rx="12" fill="#FFF7ED" stroke="#F97316" stroke-width="1.5"/>
+  <rect x="342" y="512" width="108" height="18" rx="9" fill="#F97316"/>
+  <text x="396" y="521" font-size="9"  font-weight="bold" fill="#FFF" text-anchor="middle">ASYNC · Non-blocking</text>
+  <text x="402" y="544" font-size="11" font-weight="bold" fill="#9A3412" text-anchor="middle">Kafka → Flink (10 s window) → ClickHouse + Redis INCR</text>
+  <text x="402" y="560" font-size="9"  fill="#F97316" text-anchor="middle">click.events topic · fire-and-forget virtual thread · never on the redirect critical path</text>
+
+  <!-- dashed arrow: redirect-service bottom → Kafka -->
+  <line x1="718" y1="518" x2="619" y2="518" stroke="#F97316" stroke-width="1.5" stroke-dasharray="5,3" marker-end="url(#ah-o)"/>
+  <text x="670" y="512" font-size="9" fill="#F97316" text-anchor="middle">fire-and-forget</text>
+
+  <!-- ══════════════════════════════════════════════════════════════
+       RPS LEGEND  (bottom-right)
+  ══════════════════════════════════════════════════════════════ -->
+  <rect x="866" y="484" width="157" height="80" rx="10" fill="#FFF" stroke="#D1D5DB" stroke-width="1"/>
+  <text x="944" y="500" font-size="10" font-weight="bold" fill="#374151" text-anchor="middle">RPS Distribution</text>
+  <rect x="874" y="508" width="8" height="8" rx="2" fill="#10B981"/>
+  <text x="887" y="516" font-size="9" fill="#374151">CDN L1:     ~920K (80%)</text>
+  <rect x="874" y="522" width="8" height="8" rx="2" fill="#8B5CF6"/>
+  <text x="887" y="530" font-size="9" fill="#374151">Redis L2:   ~228K (19.8%)</text>
+  <rect x="874" y="536" width="8" height="8" rx="2" fill="#6B7280"/>
+  <text x="887" y="544" font-size="9" fill="#374151">ScyllaDB:     ~2K  (0.2%)</text>
+  <rect x="874" y="550" width="8" height="8" rx="2" fill="#FB7185"/>
+  <text x="887" y="558" font-size="9" fill="#374151">Bloom 404d: bots blocked</text>
 </svg>
