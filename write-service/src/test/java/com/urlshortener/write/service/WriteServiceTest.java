@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.urlshortener.core.dto.ShortenRequest;
 import com.urlshortener.core.dto.ShortenResponse;
+import com.urlshortener.write.cdn.CdnPurgeService;
 import com.urlshortener.write.config.KgsClient;
 import com.urlshortener.write.config.WriteServiceProperties;
 import com.urlshortener.write.exception.AliasConflictException;
@@ -48,6 +49,7 @@ class WriteServiceTest {
     @Mock private UrlMappingRepository    repository;
     @Mock private CacheWarmupService      cacheWarmupService;
     @Mock private KafkaTemplate<String, String> kafkaTemplate;
+    @Mock private CdnPurgeService         cdnPurgeService;
 
     private WriteServiceProperties properties;
     private ObjectMapper           objectMapper;
@@ -67,7 +69,8 @@ class WriteServiceTest {
                 cacheWarmupService,
                 kafkaTemplate,
                 properties,
-                objectMapper);
+                objectMapper,
+                cdnPurgeService);
 
         // Default stubs
         when(validationService.validateAndNormalize(anyString())).thenReturn(LONG_URL);
@@ -179,6 +182,39 @@ class WriteServiceTest {
         assertThatThrownBy(() -> writeService.shorten(request))
                 .isInstanceOf(KeyGenerationException.class)
                 .hasMessageContaining("KGS is down");
+    }
+
+    // ── Delete path ───────────────────────────────────────────────────────────
+
+    @Test
+    @DisplayName("delete removes mapping from repository")
+    void deleteRemovesMappingFromRepository() {
+        writeService.delete(GENERATED_KEY);
+
+        verify(repository).deleteByShortKey(GENERATED_KEY);
+    }
+
+    @Test
+    @DisplayName("delete purges CDN by tag and by url")
+    void deletePurgesCdnCacheByTagAndUrl() {
+        writeService.delete(GENERATED_KEY);
+
+        // tag convention: "url-{shortKey}"
+        verify(cdnPurgeService).purgeByTag("url-" + GENERATED_KEY);
+        // url: https://{ownDomain}/{shortKey}
+        verify(cdnPurgeService).purgeByUrl("https://" + OWN_DOMAIN + "/" + GENERATED_KEY);
+    }
+
+    @Test
+    @DisplayName("delete publishes Kafka cache-invalidation event with DELETE action")
+    void deletePublishesKafkaCacheInvalidationEvent() {
+        writeService.delete(GENERATED_KEY);
+
+        ArgumentCaptor<String> payloadCaptor = ArgumentCaptor.forClass(String.class);
+        verify(kafkaTemplate).send(anyString(), eq(GENERATED_KEY), payloadCaptor.capture());
+        assertThat(payloadCaptor.getValue())
+                .contains(GENERATED_KEY)
+                .contains("DELETE");
     }
 
     // ── TTL handling ──────────────────────────────────────────────────────────

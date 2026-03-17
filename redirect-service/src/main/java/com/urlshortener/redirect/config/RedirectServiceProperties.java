@@ -34,6 +34,9 @@ public class RedirectServiceProperties {
     @NestedConfigurationProperty
     private Kafka kafka = new Kafka();
 
+    @NestedConfigurationProperty
+    private Cdn cdn = new Cdn();
+
     // ── Accessors ─────────────────────────────────────────────────────────────
 
     public String getOwnDomain() {
@@ -74,6 +77,14 @@ public class RedirectServiceProperties {
 
     public void setKafka(Kafka kafka) {
         this.kafka = kafka;
+    }
+
+    public Cdn getCdn() {
+        return cdn;
+    }
+
+    public void setCdn(Cdn cdn) {
+        this.cdn = cdn;
     }
 
     // ── Nested types ──────────────────────────────────────────────────────────
@@ -163,6 +174,33 @@ public class RedirectServiceProperties {
 
         public void setXfetchBeta(double xfetchBeta) {
             this.xfetchBeta = xfetchBeta;
+        }
+    }
+
+    /**
+     * CDN caching configuration for redirect responses.
+     *
+     * <p>The CDN is the L1 cache layer (Cloudflare/Fastly, ~300 PoPs) that absorbs ~80%
+     * of redirect traffic before requests reach this origin service.  The Bloom filter
+     * and Redis cache only run on CDN misses.
+     */
+    public static class Cdn {
+
+        /**
+         * {@code max-age} and {@code s-maxage} value (seconds) set on {@code Cache-Control}
+         * for successful 302 responses.  The CDN caches the redirect for this duration.
+         *
+         * <p>Default: 3 600 s (1 hour) — matches the CDN TTL in the system design.
+         * Set to 0 to disable CDN caching entirely (useful for testing).
+         */
+        private long cacheMaxAgeSeconds = 3_600L;
+
+        public long getCacheMaxAgeSeconds() {
+            return cacheMaxAgeSeconds;
+        }
+
+        public void setCacheMaxAgeSeconds(long cacheMaxAgeSeconds) {
+            this.cacheMaxAgeSeconds = cacheMaxAgeSeconds;
         }
     }
 

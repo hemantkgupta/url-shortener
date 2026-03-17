@@ -1,5 +1,6 @@
 package com.urlshortener.redirect.controller;
 
+import com.urlshortener.redirect.config.RedirectServiceProperties;
 import com.urlshortener.redirect.service.RedirectResult;
 import com.urlshortener.redirect.service.RedirectService;
 import jakarta.servlet.http.HttpServletRequest;
@@ -31,26 +32,48 @@ import java.util.regex.Pattern;
  *   <li>{@code 400 Bad Request} — short key fails format validation</li>
  * </ul>
  *
- * <h2>Cache-Control</h2>
- * Every redirect response carries {@code Cache-Control: no-store} to ensure that CDNs
- * and browsers do not cache the redirect.  This guarantees that each user click passes
- * through this service and is counted in the analytics pipeline.
+ * <h2>Cache-Control strategy</h2>
+ * <ul>
+ *   <li><b>302 Found</b> — {@code Cache-Control: public, max-age=N, s-maxage=N} so the
+ *       upstream CDN (Cloudflare/Fastly) caches the redirect for {@code N} seconds (default
+ *       3 600 s = 1 hour).  The CDN absorbs ~80% of read traffic; requests that hit the CDN
+ *       never reach this service, so analytics are captured only for origin hits (~20%).
+ *       {@code Surrogate-Key} (Fastly) and {@code Cache-Tag} (Cloudflare) headers are set to
+ *       {@code url-{shortKey}} to enable targeted cache purge on URL deletion.</li>
+ *   <li><b>404 / 410</b> — {@code Cache-Control: no-store}.  Negative results must never be
+ *       CDN-cached: a key that returns 404 today could be created tomorrow.</li>
+ * </ul>
  */
 @RestController
 public class RedirectController {
 
     private static final Logger log = LoggerFactory.getLogger(RedirectController.class);
 
-    /** Allowed short key format: 1–8 alphanumeric characters. */
+    /** Allowed short key format: 1–8 Base-62 characters. */
     private static final Pattern SHORT_KEY_PATTERN = Pattern.compile("[A-Za-z0-9]{1,8}");
 
-    /** Prevent browser / CDN caching of redirect responses so every click is counted. */
+    /** Cache-Control for negative results (404/410) — never cache. */
     private static final String CACHE_CONTROL_NO_STORE = "no-store";
 
-    private final RedirectService redirectService;
+    /**
+     * Surrogate-Key header used by Fastly for tag-based purge.
+     * Value convention: {@code url-{shortKey}}.
+     */
+    private static final String SURROGATE_KEY_HEADER = "Surrogate-Key";
 
-    public RedirectController(RedirectService redirectService) {
+    /**
+     * Cache-Tag header used by Cloudflare for tag-based purge.
+     * Value convention: {@code url-{shortKey}}.
+     */
+    private static final String CACHE_TAG_HEADER = "Cache-Tag";
+
+    private final RedirectService redirectService;
+    private final RedirectServiceProperties properties;
+
+    public RedirectController(RedirectService redirectService,
+                              RedirectServiceProperties properties) {
         this.redirectService = redirectService;
+        this.properties = properties;
     }
 
     /**
@@ -80,9 +103,14 @@ public class RedirectController {
         return switch (result) {
             case RedirectResult.Found found -> {
                 log.debug("Redirecting shortKey={} → {}", shortKey, found.longUrl());
+                long ttl = properties.getCdn().getCacheMaxAgeSeconds();
+                String cacheControl = "public, max-age=" + ttl + ", s-maxage=" + ttl;
+                String cacheTag     = "url-" + shortKey;
                 yield ResponseEntity.status(HttpStatus.FOUND)
-                        .header(HttpHeaders.LOCATION, found.longUrl())
-                        .header(HttpHeaders.CACHE_CONTROL, CACHE_CONTROL_NO_STORE)
+                        .header(HttpHeaders.LOCATION,  found.longUrl())
+                        .header(HttpHeaders.CACHE_CONTROL, cacheControl)
+                        .header(SURROGATE_KEY_HEADER,  cacheTag)   // Fastly tag-based purge
+                        .header(CACHE_TAG_HEADER,      cacheTag)   // Cloudflare tag-based purge
                         .build();
             }
             case RedirectResult.NotFound notFound -> {

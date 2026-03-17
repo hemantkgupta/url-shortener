@@ -34,6 +34,9 @@ public class WriteServiceProperties {
     @NestedConfigurationProperty
     private Cassandra cassandra = new Cassandra();
 
+    @NestedConfigurationProperty
+    private Cdn cdn = new Cdn();
+
     // ── Accessors ────────────────────────────────────────────────────────────
 
     public String getKgsBaseUrl() {
@@ -76,7 +79,79 @@ public class WriteServiceProperties {
         this.cassandra = cassandra;
     }
 
+    public Cdn getCdn() {
+        return cdn;
+    }
+
+    public void setCdn(Cdn cdn) {
+        this.cdn = cdn;
+    }
+
     // ── Nested types ─────────────────────────────────────────────────────────
+
+    /**
+     * CDN cache invalidation configuration.
+     *
+     * <p>When {@code enabled=true} the {@code CloudflareCdnPurgeService} is activated and
+     * will call the Cloudflare Cache-Tag API to immediately purge deleted short URLs from
+     * all CDN edge nodes.  When {@code false} (default) the no-op implementation is used,
+     * which only logs purge events — safe for local development with no outbound calls.
+     */
+    public static class Cdn {
+
+        /**
+         * Enables the real Cloudflare CDN purge implementation.
+         * Default: {@code false} — uses {@code NoOpCdnPurgeService} for local dev.
+         */
+        private boolean enabled = false;
+
+        @NestedConfigurationProperty
+        private Cloudflare cloudflare = new Cloudflare();
+
+        public boolean isEnabled() {
+            return enabled;
+        }
+
+        public void setEnabled(boolean enabled) {
+            this.enabled = enabled;
+        }
+
+        public Cloudflare getCloudflare() {
+            return cloudflare;
+        }
+
+        public void setCloudflare(Cloudflare cloudflare) {
+            this.cloudflare = cloudflare;
+        }
+
+        public static class Cloudflare {
+
+            /** Cloudflare Zone ID — found in the dashboard under your domain overview. */
+            private String zoneId = "";
+
+            /**
+             * Cloudflare API token with {@code Cache Purge} permission.
+             * Never commit a real value — inject via environment variable.
+             */
+            private String apiToken = "";
+
+            public String getZoneId() {
+                return zoneId;
+            }
+
+            public void setZoneId(String zoneId) {
+                this.zoneId = zoneId;
+            }
+
+            public String getApiToken() {
+                return apiToken;
+            }
+
+            public void setApiToken(String apiToken) {
+                this.apiToken = apiToken;
+            }
+        }
+    }
 
     public static class Kafka {
 

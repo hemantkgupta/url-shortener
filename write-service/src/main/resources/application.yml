@@ -38,6 +38,13 @@ write:
     blocklist:
       - malware.example.com
       - phishing.test.org
+  cdn:
+    # Set to true in production to enable the Cloudflare Cache-Tag purge API.
+    # When false (default), the no-op implementation logs purge events without HTTP calls.
+    enabled: ${CDN_ENABLED:false}
+    cloudflare:
+      zone-id: ${CLOUDFLARE_ZONE_ID:}
+      api-token: ${CLOUDFLARE_API_TOKEN:}
 
 management:
   endpoints:

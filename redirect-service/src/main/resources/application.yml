@@ -31,6 +31,12 @@ redirect:
       click-events: click.events
   own-domain: ${OWN_DOMAIN:localhost}
   ip-daily-salt: ${IP_DAILY_SALT:dev-salt-change-in-prod}
+  cdn:
+    # TTL for Cache-Control: public, max-age=N, s-maxage=N on 302 responses.
+    # The CDN (Cloudflare/Fastly) caches the redirect for this duration, absorbing ~80%
+    # of read traffic before requests reach this origin service.
+    # 404 and 410 responses always use Cache-Control: no-store regardless of this value.
+    cache-max-age-seconds: ${CDN_CACHE_MAX_AGE_SECONDS:3600}
 
 management:
   endpoints:
