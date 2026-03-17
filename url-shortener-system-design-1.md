@@ -3,7 +3,7 @@
 
 ## Table of Contents
 
-1. [Problem Framing — Start Here](#1-problem-framing--start-here)
+1. [Problem](#1-problem)
 2. [Back-of-the-Envelope Estimation](#2-back-of-the-envelope-estimation)
 3. [API Contract](#3-api-contract)
 4. [High-Level Architecture](#4-high-level-architecture)
@@ -16,7 +16,7 @@
 
 ---
 
-## 1. Problem Framing — Start Here
+## 1. Problem
 
 ### What problem are we actually solving?
 
@@ -44,9 +44,9 @@ This is a critical product distinction that drives rate limiting, quota, and fea
 ```mermaid
 flowchart TD
     REQ["Incoming Request"]
-    AUTH{"Bearer Token\nPresent?"}
+    AUTH{"Bearer Token</br>Present?"}
 
-    subgraph UNAUTH["Unauthenticated (Anonymous) User"]
+    subgraph UNAUTH["Unauthenticated"]
         UA1["✅ Create short URL (counter-based key only)"]
         UA2["✅ Redirect (GET /:key)"]
         UA3["❌ No custom alias"]
@@ -55,7 +55,7 @@ flowchart TD
         UA6["⚠️ Aggressive global rate limit: 10 creates/hour per IP"]
     end
 
-    subgraph AUTHFLOW["Authenticated (API Key / JWT) User"]
+    subgraph AUTHFLOW["Authenticated"]
         A1["✅ Create short URL"]
         A2["✅ Custom vanity slug (e.g. sho.rt/my-brand)"]
         A3["✅ Redirect with full analytics tracking"]
@@ -266,8 +266,6 @@ sequenceDiagram
 
 ## 5. Deep Dive 1 — Key Generation
 
-> The core algorithmic problem. There are two canonical approaches. Interviewers expect you to reason through the trade-offs, not just pick one.
-
 ### The Fundamental Tension
 
 We need keys that are:
@@ -323,7 +321,11 @@ P ≈ (1.825T)² / (2 × 218T)
 
 ### Approach B — Counter-Based with etcd Block Allocation ✅ Preferred
 
-**Core insight:** Instead of generating a random key and checking for uniqueness, *pre-allocate exclusive numeric ranges* and convert them to Base62. Uniqueness is guaranteed by range exclusivity — no DB lookup needed at write time. At hyper-scale, we use a distributed consensus mechanism like **etcd** rather than a relational database to prevent locking bottlenecks.
+**Core insight:** Instead of generating a random key and checking for uniqueness, **pre-allocate exclusive numeric ranges** and convert them to Base62. 
+
+Uniqueness is guaranteed by range exclusivity. There is no DB lookup needed at write time. 
+
+At hyper-scale, we use a distributed consensus mechanism like **etcd** rather than a relational database to prevent locking bottlenecks.
 
 ```mermaid
 flowchart TD
@@ -376,10 +378,8 @@ flowchart LR
     A["Monotonic key<br/>3DKusUK"]
     B["Bit reversal<br/>Reverse 42 bits<br/>spreads across B-tree"]
     C["Hash prefix sharding<br/>first 2 chars determine<br/>shard ID"]
-    D["UUID as PK<br/>use short_key directly<br/>as varchar PK"]
     A --> B
     A --> C
-    A --> D
 ```
 
 **Bit reversal** is the most CPU-efficient: flip the binary representation of the integer counter before storing as PK. Adjacent counters map to opposite ends of the keyspace → writes spread across the whole B-tree.
@@ -427,7 +427,9 @@ On lookup: check `ALIAS_MAPPING` first → resolve to `short_key` → lookup `UR
 
 ### Schema Design (ScyllaDB)
 
-At 1.9 PB of data and 11.5K writes/sec, a traditional RDBMS like PostgreSQL introduces massive operational complexity (500+ shards, resharding pain, failover lag). A NoSQL Wide-Column store like **ScyllaDB** is the industry standard for this pattern.
+At 1.9 PB of data and 11.5K writes/sec, a traditional RDBMS like PostgreSQL introduces massive operational complexity (500+ shards, resharding pain, failover lag). 
+
+A NoSQL Wide-Column store like **ScyllaDB** is the industry standard for this pattern.
 
 ```sql
 -- Core mapping table
@@ -470,8 +472,6 @@ CREATE TABLE alias_mapping (
 
 **url_mapping_by_user:** Only needed for the "my links" dashboard. The `user_id` is the partition key, meaning all of a user's links live together on the same node, sorted by time.
 
-**No index on long_url:** Deduplication requires read-before-write or a global secondary index on a TEXT column, which ruins the write path. The cost of storing two rows for the same URL is negligible (~1 KB).
-
 ### Sharding Strategy (NoSQL Ring)
 
 With ScyllaDB, sharding is handled automatically via **Consistent Hashing** around a ring topology.
@@ -502,38 +502,91 @@ flowchart TD
 | **L2** | Redis Cluster (Multi-TB) | Per datacenter | 24 hours | 99% of L1 misses | ~228K RPS |
 | **L3** | ScyllaDB (source of truth) | Per datacenter | — | Fallback only | ~2K RPS |
 
-> At L1+L2 combined, **ScyllaDB only sees ~0.2% of total read traffic** — 2,000 RPS out of 1.15M. This is why caching is the most critical performance lever in the system.
+> At L1+L2 combined, **ScyllaDB only sees ~0.2% of total read traffic** — 2,000 RPS out of 1.15M. 
+
+> This is why caching is the most critical performance lever in the system.
 
 ---
 
 ### Read Path — Read-Through with Bloom Filter Gate
 
-On every redirect request, the Read Service follows this exact path:
+On every redirect request the system follows this layered path. **The CDN is always first** — the Bloom filter lives inside the origin server (`redirect-service`) and only runs on a CDN miss. It never sits in front of the CDN.
+
+| Step | Layer | Where | RPS absorbed |
+|------|-------|--------|-------------|
+| ① | CDN Edge (L1) | 300 global PoPs | ~920K RPS (80%) |
+| ② | Bloom Filter gate | Inside origin, **after** CDN miss | filters bot traffic |
+| ③ | Redis Cluster (L2) | Per-datacenter | ~228K RPS (99% of CDN misses) |
+| ④ | ScyllaDB (L3) | Per-datacenter | ~2K RPS (0.2% of total) |
+
+> **Why is the Bloom filter not before the CDN?**
+> The CDN is a globally distributed network edge (Cloudflare/Fastly PoPs). The Bloom filter is a 32 GB RedisBloom structure living in your origin datacenter. You cannot run it at the CDN edge without Cloudflare Workers or equivalent. More importantly, the CDN already handles 80% of traffic — the Bloom filter's job is to protect **Redis and ScyllaDB** from the remaining 20% (CDN misses) being flooded with fake/random keys by bots.
 
 ```mermaid
-flowchart TD
-    A["Client: GET /:short_key"]
-    BF{"Bloom Filter\n(RedisBloom, 32 GB)\nshort_key registered?"}
-    N404["Return 404 ✗\n(no cache, no DB touched)"]
-    L1{"L1: CDN Edge Cache\nHit?"}
-    L1HIT["Return 302 Redirect ✅\nlatency ~10ms"]
-    L2{"L2: Redis Cluster\nHit?"}
-    L2HIT["Populate CDN\nReturn 302 Redirect ✅\nlatency ~20ms"]
-    EXPIRE{"Check expires_at\nin cached value"}
-    L3["L3: ScyllaDB\n(partition key lookup,\nO(1) hash)"]
-    L3HIT["Populate Redis + CDN\nReturn 302 Redirect ✅\nlatency ~50ms"]
-    GONE["Return 410 Gone\nDelete from cache"]
+sequenceDiagram
+    autonumber
+    participant Client
+    participant CDN as 🌐 CDN Edge<br/>(Cloudflare/Fastly · 300 PoPs)<br/>L1 Cache · TTL 1 hr
+    participant Envoy as ⚡ Envoy Sidecar<br/>Rate Limiter
+    participant RS as 🔄 redirect-service<br/>(Java 21 · Virtual Threads)
+    participant BF as 🔵 RedisBloom<br/>Bloom Filter<br/>BF.EXISTS
+    participant Redis as ⚡ Redis L2 Cache<br/>512 GB / DC · 24 h TTL
+    participant Scylla as 🗄️ ScyllaDB<br/>LOCAL_QUORUM · RF=3
+    participant Kafka as 📨 Kafka<br/>click.events
+    participant Flink as ⚙️ Flink → ClickHouse<br/>+ Redis INCR (async)
 
-    A --> BF
-    BF -->|"Definitely NOT in DB"| N404
-    BF -->|"Probably in DB"| L1
-    L1 -->|hit| L1HIT
-    L1 -->|miss| L2
-    L2 -->|hit| EXPIRE
-    EXPIRE -->|"expires_at in future"| L2HIT
-    EXPIRE -->|"expired"| GONE
-    L2 -->|miss| L3
-    L3 --> L3HIT
+    Note over Client,CDN: ── L1: CDN EDGE — absorbs ~920K RPS (80% of 1.15M) ──
+
+    Client->>CDN: GET /{shortKey}
+
+    alt 🟢 CDN HIT (80% · ~920K RPS)
+        CDN-->>Client: 302 Found · Location: long_url<br/>⚡ <5 ms · client never reaches origin
+    else 🟡 CDN MISS (20% · ~230K RPS reach origin)
+        CDN->>Envoy: Forward request
+        Envoy->>Envoy: Token bucket rate limit<br/>(100 req/s per IP · 15K writes/s global)
+        Envoy->>RS: Forward (rate-limit OK)
+
+        Note over RS,BF: ── Bloom filter is the FIRST gate inside origin (after CDN miss, never before CDN) ──
+
+        RS->>BF: BF.EXISTS kgs:allocated {shortKey}<br/>(32 GB · ~10 bits/key · <1% false-positive · 26B keys)
+
+        alt 🔴 Key DEFINITELY NOT in Bloom Filter (bot / fake key)
+            BF-->>RS: 0 — absent
+            RS-->>Client: 404 Not Found<br/>🛡️ Redis + ScyllaDB never touched
+        else 🟡 Key MAY exist — passes Bloom gate
+            BF-->>RS: 1 — may exist
+
+            Note over RS,Redis: ── L2: Redis Cache — absorbs ~228K RPS (99% of CDN misses) ──
+
+            RS->>Redis: GET url:{shortKey}<br/>Lettuce async · XFetch early-refresh check
+
+            alt 🟢 Redis HIT (99% · ~228K RPS)
+                Redis-->>RS: long_url
+                RS-->>Client: 302 Found · Location: long_url<br/>⚡ ~5–15 ms
+                RS-)Kafka: publish ClickEvent<br/>🔥 fire-and-forget · virtual thread · non-blocking
+            else 🟡 Redis MISS (<1% of CDN misses · ~2K RPS)
+
+                Note over RS,Scylla: ── L3: ScyllaDB — only ~2K RPS (0.2% of 1.15M total) ──
+
+                RS->>Scylla: SELECT * FROM url_mapping<br/>WHERE short_key = ? · LOCAL_QUORUM
+
+                alt 🔴 NOT FOUND or EXPIRED
+                    Scylla-->>RS: empty / is_active = false
+                    RS-->>Client: 404 Not Found / 410 Gone
+                else 🟢 FOUND + active
+                    Scylla-->>RS: UrlMapping row
+                    RS-->>Client: 302 Found · Location: long_url<br/>⏱️ ~20–50 ms
+                    RS-)Redis: SET url:{shortKey} long_url EX {ttl}<br/>🔥 async cache warm · non-blocking
+                    RS-)Kafka: publish ClickEvent<br/>🔥 fire-and-forget · virtual thread
+                end
+            end
+        end
+    end
+
+    Note over Kafka,Flink: ── Async analytics pipeline — never on the redirect critical path ──
+    Kafka-)Flink: consume click.events · 10-second tumbling window
+    Flink-)ClickHouse: bulk INSERT batch
+    Flink-)Redis: INCR click_count:{shortKey}
 ```
 
 ---
