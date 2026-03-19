@@ -4,6 +4,7 @@ import org.redisson.api.RBloomFilter;
 import org.redisson.api.RedissonClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.redis.core.ReactiveRedisTemplate;
 import org.springframework.stereotype.Component;
 
@@ -40,7 +41,7 @@ public class CacheWarmupService {
     private final RBloomFilter<String>                  bloomFilter;
 
     public CacheWarmupService(
-            ReactiveRedisTemplate<String, String> redisTemplate,
+            @Qualifier("reactiveRedisTemplate") ReactiveRedisTemplate<String, String> redisTemplate,
             RedissonClient redissonClient) {
         this.redisTemplate = redisTemplate;
         // Lazily initialise — tryInit is idempotent if already configured

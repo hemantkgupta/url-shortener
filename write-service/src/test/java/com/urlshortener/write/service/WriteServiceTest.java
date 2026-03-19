@@ -2,6 +2,8 @@ package com.urlshortener.write.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.urlshortener.core.auth.AuthenticatedUser;
+import com.urlshortener.core.domain.UrlMapping;
 import com.urlshortener.core.dto.ShortenRequest;
 import com.urlshortener.core.dto.ShortenResponse;
 import com.urlshortener.write.cdn.CdnPurgeService;
@@ -17,10 +19,13 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.support.SendResult;
 
 import java.util.concurrent.CompletableFuture;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -38,11 +43,14 @@ import static org.mockito.Mockito.when;
  * <p>All collaborators are Mockito mocks.  No Spring context is started.
  */
 @ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 class WriteServiceTest {
 
-    private static final String GENERATED_KEY = "00abc123";
+    private static final String GENERATED_KEY = "10Eoz8Ph";
     private static final String LONG_URL       = "https://example.com/some/path";
     private static final String OWN_DOMAIN     = "short.ly";
+    private static final AuthenticatedUser CURRENT_USER =
+            new AuthenticatedUser(42L, "google-subject", "user@example.com", "Test User");
 
     @Mock private UrlValidationService    validationService;
     @Mock private KgsClient               kgsClient;
@@ -79,6 +87,8 @@ class WriteServiceTest {
                 .thenReturn(CompletableFuture.completedFuture(null));
         when(cacheWarmupService.addToBloomFilter(anyString()))
                 .thenReturn(CompletableFuture.completedFuture(null));
+        when(repository.findByShortKey(anyString()))
+                .thenAnswer(invocation -> Optional.of(ownedMapping(invocation.getArgument(0))));
 
         CompletableFuture<SendResult<String, String>> kafkaFuture = CompletableFuture.completedFuture(null);
         when(kafkaTemplate.send(anyString(), anyString(), anyString())).thenReturn(kafkaFuture);
@@ -91,7 +101,7 @@ class WriteServiceTest {
     void successfulShortenReturnsCorrectResponse() {
         ShortenRequest request = new ShortenRequest(LONG_URL, null, null);
 
-        ShortenResponse response = writeService.shorten(request);
+        ShortenResponse response = writeService.shorten(request, null);
 
         assertThat(response.getShortKey()).isEqualTo(GENERATED_KEY);
         assertThat(response.getLongUrl()).isEqualTo(LONG_URL);
@@ -105,7 +115,7 @@ class WriteServiceTest {
     void successfulShortenPersistsMapping() {
         ShortenRequest request = new ShortenRequest(LONG_URL, null, null);
 
-        writeService.shorten(request);
+        writeService.shorten(request, null);
 
         verify(repository).save(any());
     }
@@ -115,7 +125,7 @@ class WriteServiceTest {
     void successfulShortenTriggersAsyncCacheWarm() {
         ShortenRequest request = new ShortenRequest(LONG_URL, null, null);
 
-        writeService.shorten(request);
+        writeService.shorten(request, null);
 
         verify(cacheWarmupService).warmCache(eq(GENERATED_KEY), eq(LONG_URL), anyLong());
         verify(cacheWarmupService).addToBloomFilter(eq(GENERATED_KEY));
@@ -126,7 +136,7 @@ class WriteServiceTest {
     void successfulShortenPublishesKafkaEvent() {
         ShortenRequest request = new ShortenRequest(LONG_URL, null, null);
 
-        writeService.shorten(request);
+        writeService.shorten(request, null);
 
         ArgumentCaptor<String> topicCaptor   = ArgumentCaptor.forClass(String.class);
         ArgumentCaptor<String> keyCaptor     = ArgumentCaptor.forClass(String.class);
@@ -147,7 +157,7 @@ class WriteServiceTest {
         when(repository.existsAlias(alias)).thenReturn(false);
 
         ShortenRequest request = new ShortenRequest(LONG_URL, alias, null);
-        ShortenResponse response = writeService.shorten(request);
+        ShortenResponse response = writeService.shorten(request, null);
 
         assertThat(response.getShortKey()).isEqualTo(alias);
         verify(kgsClient, never()).nextKey();  // KGS should not be called for custom key
@@ -162,7 +172,7 @@ class WriteServiceTest {
 
         ShortenRequest request = new ShortenRequest(LONG_URL, alias, null);
 
-        assertThatThrownBy(() -> writeService.shorten(request))
+        assertThatThrownBy(() -> writeService.shorten(request, null))
                 .isInstanceOf(AliasConflictException.class)
                 .hasMessageContaining(alias);
 
@@ -179,7 +189,7 @@ class WriteServiceTest {
 
         ShortenRequest request = new ShortenRequest(LONG_URL, null, null);
 
-        assertThatThrownBy(() -> writeService.shorten(request))
+        assertThatThrownBy(() -> writeService.shorten(request, null))
                 .isInstanceOf(KeyGenerationException.class)
                 .hasMessageContaining("KGS is down");
     }
@@ -189,7 +199,7 @@ class WriteServiceTest {
     @Test
     @DisplayName("delete removes mapping from repository")
     void deleteRemovesMappingFromRepository() {
-        writeService.delete(GENERATED_KEY);
+        writeService.delete(GENERATED_KEY, CURRENT_USER);
 
         verify(repository).deleteByShortKey(GENERATED_KEY);
     }
@@ -197,7 +207,7 @@ class WriteServiceTest {
     @Test
     @DisplayName("delete purges CDN by tag and by url")
     void deletePurgesCdnCacheByTagAndUrl() {
-        writeService.delete(GENERATED_KEY);
+        writeService.delete(GENERATED_KEY, CURRENT_USER);
 
         // tag convention: "url-{shortKey}"
         verify(cdnPurgeService).purgeByTag("url-" + GENERATED_KEY);
@@ -208,7 +218,7 @@ class WriteServiceTest {
     @Test
     @DisplayName("delete publishes Kafka cache-invalidation event with DELETE action")
     void deletePublishesKafkaCacheInvalidationEvent() {
-        writeService.delete(GENERATED_KEY);
+        writeService.delete(GENERATED_KEY, CURRENT_USER);
 
         ArgumentCaptor<String> payloadCaptor = ArgumentCaptor.forClass(String.class);
         verify(kafkaTemplate).send(anyString(), eq(GENERATED_KEY), payloadCaptor.capture());
@@ -224,12 +234,22 @@ class WriteServiceTest {
     void ttlDaysIsRespected() {
         ShortenRequest request = new ShortenRequest(LONG_URL, null, 30);
 
-        ShortenResponse response = writeService.shorten(request);
+        ShortenResponse response = writeService.shorten(request, null);
 
         assertThat(response.getExpiresAt()).isNotNull();
         // expiresAt should be approximately 30 days from now
         long daysUntilExpiry = java.time.Duration.between(
                 java.time.Instant.now(), response.getExpiresAt()).toDays();
         assertThat(daysUntilExpiry).isBetween(29L, 30L);
+    }
+
+    private UrlMapping ownedMapping(String shortKey) {
+        return UrlMapping.builder()
+                .shortKey(shortKey)
+                .longUrl(LONG_URL)
+                .userId(CURRENT_USER.userId())
+                .createdAt(java.time.Instant.now())
+                .isActive(true)
+                .build();
     }
 }

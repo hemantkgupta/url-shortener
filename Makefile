@@ -5,6 +5,7 @@ COMPOSE_FILE := infrastructure/compose/docker-compose.dev.yml
 .PHONY: help \
         infra-up infra-down infra-logs \
         init-db \
+        run-local \
         dev \
         services-start services-stop \
         build test integration-test perf-test \
@@ -42,6 +43,9 @@ init-db: ## Initialise ScyllaDB and ClickHouse schemas
 # -----------------------------------------------------------------------------
 # Full Dev Environment
 # -----------------------------------------------------------------------------
+run-local: ## Start core infra + backend + frontend locally
+	bash ./run-local.sh
+
 dev: infra-up init-db services-start ## Start infra + init schemas + start all Spring Boot services
 	@echo "Dev environment is up. Frontend: cd frontend && npm run dev"
 
@@ -75,7 +79,7 @@ perf-test: ## Run Gatling performance tests
 frontend-install: ## Install frontend npm dependencies
 	cd frontend && npm install
 
-frontend-dev: ## Start frontend Vite dev server (port 5173)
+frontend-dev: ## Start frontend Vite dev server (port 3000)
 	cd frontend && npm run dev
 
 frontend-build: ## Build frontend for production

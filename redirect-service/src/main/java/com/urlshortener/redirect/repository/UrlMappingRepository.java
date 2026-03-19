@@ -24,7 +24,7 @@ import java.util.Optional;
  *
  * <p>The underlying table schema (created by Write Service's {@code SchemaInitializer}):
  * <pre>{@code
- * CREATE TABLE url_shortener.url_mappings (
+ * CREATE TABLE url_shortener.url_mapping (
  *     short_key  TEXT PRIMARY KEY,
  *     long_url   TEXT,
  *     user_id    BIGINT,
@@ -69,10 +69,10 @@ public class UrlMappingRepository {
 
         findByShortKeyStmt = cqlSession.prepare(
                 "SELECT short_key, long_url, user_id, created_at, expires_at, is_active "
-                        + "FROM url_mappings WHERE short_key = ?");
+                        + "FROM url_mapping WHERE short_key = ?");
 
         existsByShortKeyStmt = cqlSession.prepare(
-                "SELECT short_key FROM url_mappings WHERE short_key = ?");
+                "SELECT short_key FROM url_mapping WHERE short_key = ?");
 
         log.info("CQL prepared statements compiled successfully");
     }

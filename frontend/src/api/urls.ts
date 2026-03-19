@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import apiClient from './client'
 import type {
+  ApiError,
   AnalyticsResponse,
   LinkItem,
   ShortenRequest,
@@ -22,9 +23,9 @@ function todayIso(): string {
 // ── Shorten URL ──────────────────────────────────────────────────────────────
 
 export function useShortenUrl() {
-  return useMutation<ShortenResponse, Error, ShortenRequest>({
+  return useMutation<ShortenResponse, ApiError, ShortenRequest>({
     mutationFn: async (payload) => {
-      const { data } = await apiClient.post<ShortenResponse>('/v1/urls', payload)
+      const { data } = await apiClient.post<ShortenResponse>('/api/write/v1/urls', payload)
       return data
     },
   })
@@ -32,15 +33,16 @@ export function useShortenUrl() {
 
 // ── User Links ───────────────────────────────────────────────────────────────
 
-export function useUserLinks(userId?: number) {
-  return useQuery<LinkItem[], Error>({
-    queryKey: ['userLinks', userId],
+export function useUserLinks(enabled: boolean) {
+  return useQuery<LinkItem[], ApiError>({
+    queryKey: ['userLinks'],
     queryFn: async () => {
-      const params: Record<string, string | number> = { page: 0, size: 20 }
-      if (userId !== undefined) params.userId = userId
-      const { data } = await apiClient.get<LinkItem[]>('/v1/urls', { params })
+      const { data } = await apiClient.get<LinkItem[]>('/api/analytics/v1/urls', {
+        params: { page: 0, size: 20 },
+      })
       return data
     },
+    enabled,
     staleTime: 60_000, // 1 minute
   })
 }
@@ -48,13 +50,13 @@ export function useUserLinks(userId?: number) {
 // ── Analytics ────────────────────────────────────────────────────────────────
 
 export function useAnalytics(shortKey: string, enabled: boolean) {
-  return useQuery<AnalyticsResponse, Error>({
+  return useQuery<AnalyticsResponse, ApiError>({
     queryKey: ['analytics', shortKey],
     queryFn: async () => {
       const from = isoDateNDaysAgo(30)
       const to = todayIso()
       const { data } = await apiClient.get<AnalyticsResponse>(
-        `/v1/urls/${shortKey}/analytics`,
+        `/api/analytics/v1/urls/${shortKey}/analytics`,
         { params: { from, to } },
       )
       return data
@@ -69,9 +71,9 @@ export function useAnalytics(shortKey: string, enabled: boolean) {
 export function useDeleteUrl() {
   const queryClient = useQueryClient()
 
-  return useMutation<void, Error, string>({
+  return useMutation<void, ApiError, string>({
     mutationFn: async (shortKey: string) => {
-      await apiClient.delete(`/v1/urls/${shortKey}`)
+      await apiClient.delete(`/api/write/v1/urls/${shortKey}`)
     },
     onSuccess: () => {
       // Invalidate the links list so the table refreshes

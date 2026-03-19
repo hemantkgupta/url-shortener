@@ -2,10 +2,6 @@ package com.urlshortener.core.dto;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import com.fasterxml.jackson.datatype.jsr310.deser.InstantDeserializer;
-import com.fasterxml.jackson.datatype.jsr310.ser.InstantSerializer;
 
 import java.time.Instant;
 import java.util.Objects;
@@ -29,8 +25,6 @@ public final class ErrorResponse {
     private final String errorCode;
     private final String message;
 
-    @JsonSerialize(using = InstantSerializer.class)
-    @JsonDeserialize(using = InstantDeserializer.INSTANT)
     private final Instant timestamp;
 
     private final String traceId;

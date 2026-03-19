@@ -321,7 +321,7 @@ P ≈ (1.825T)² / (2 × 218T)
 
 ### Approach B — Counter-Based with etcd Block Allocation ✅ Preferred
 
-**Core insight:** Instead of generating a random key and checking for uniqueness, **pre-allocate exclusive numeric ranges** and convert them to Base62. 
+**Core insight:** Instead of generating a random key and checking for uniqueness, **pre-allocate exclusive numeric ranges** and deterministically map them into the public 8-character Base62 space. 
 
 Uniqueness is guaranteed by range exclusivity. There is no DB lookup needed at write time. 
 
@@ -351,38 +351,40 @@ flowchart TD
 3. **Write Service starts up:** Requests a block of 10,000 sequential integers from KGS.
    - Stores block in memory: `{start: 1000000, end: 1010000, current: 1000000}`
    - No remote call needed until the block is exhausted.
-4. **Per request:** `current++` → convert to Base62 → this is the `short_key`.
+4. **Per request:** `current++` → apply a deterministic permutation into the public 8-character Base62 range → this is the `short_key`.
 5. **Block exhausted:** Request next block from KGS (async, pre-fetch when 80% used).
 
-**Base-62 counter conversion:**
+**Public key mapping:**
 
 ```
-Decimal       →  Base62
-56800235584   →  "10000000"  (8 chars, starting point)
-56800235585   →  "10000001"
+Raw counter   →  Public short key
+0             →  "10Eoz8Ph"
+1             →  "10EozIp0"
 ...
-11316496598116  →  "3DKusUKA"
-11316496598117  →  "3DKusUKB"
+11316496598116  →  "eW5LseiD"
+11316496598117  →  "eW5Lsp7W"
 ```
 
-Key insight: monotonically increasing decimal integers map to monotonically increasing 8-char Base62 strings. We start at `10000000` (Base62) = ~56.8 billion decimal, giving us a clean 8-character range all the way to `ZZZZZZZZ` = 218 trillion.
+Key insight: the public key space is still the full 8-character Base62 range from `10000000` to `ZZZZZZZZ`, but callers never see the raw monotonic counter directly. The permutation keeps every generated key exactly 8 characters, avoids `00000000`-style padding, and makes adjacent writes non-obvious externally.
 
 **Preventing hotspot writes (monotonic key problem):**
 
 A monotonically increasing primary key causes all DB writes to go to the *last page* of the B-tree index — a classic write hotspot.
 
-Solutions (ranked by elegance):
+The public-key permutation already breaks the monotonic ordering that would otherwise hit the trailing edge of the index.
+
+Other possible approaches:
 
 ```mermaid
 flowchart LR
     A["Monotonic key<br/>3DKusUK"]
-    B["Bit reversal<br/>Reverse 42 bits<br/>spreads across B-tree"]
+    B["Deterministic permutation<br/>Exact 8-char public key<br/>spreads across B-tree"]
     C["Hash prefix sharding<br/>first 2 chars determine<br/>shard ID"]
     A --> B
     A --> C
 ```
 
-**Bit reversal** is the most CPU-efficient: flip the binary representation of the integer counter before storing as PK. Adjacent counters map to opposite ends of the keyspace → writes spread across the whole B-tree.
+**Deterministic permutation** is simple and sufficient here: map each raw counter bijectively into the public 8-character range. Adjacent counters land far apart in the visible keyspace, so writes spread across the whole index while preserving uniqueness.
 
 **Comparison table:**
 
@@ -1140,7 +1142,7 @@ flowchart LR
 
 **Malicious URL detection:** Check `long_url` against a Bloom Filter pre-loaded with the Google Safe Browsing dataset on write. If flagged and confirmed, set `is_active = false` and serve a warning interstitial instead of redirecting. See **Cache Security: Three Attack Vectors** in the Caching section for full details.
 
-**Custom key conflicts with counter range:**
+**Custom key conflicts with generated key range:**
 ```
 Counter key space: "10000000" to "ZZZZZZZZ" (all 8-char Base62)
 Custom keys: stored in alias_mapping table — separate namespace

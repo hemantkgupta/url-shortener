@@ -4,6 +4,30 @@
 # =============================================================================
 set -euo pipefail
 
+START_SIGNOZ=true
+
+for arg in "$@"; do
+  case "${arg}" in
+    --core-only)
+      START_SIGNOZ=false
+      ;;
+    --help|-h)
+      cat <<'EOF'
+Usage: ./infrastructure/scripts/start-infra.sh [--core-only]
+
+Options:
+  --core-only   Start only the app dependencies needed for local development
+                (ScyllaDB, Redis, etcd, Kafka, Kafka UI, ClickHouse).
+                Skips SigNoz and the OTel collector.
+EOF
+      exit 0
+      ;;
+    *)
+      echo "[WARN ]  Unknown flag: ${arg} (ignored)"
+      ;;
+  esac
+done
+
 # ---------------------------------------------------------------------------
 # Colour helpers
 # ---------------------------------------------------------------------------
@@ -80,12 +104,54 @@ check_port 4317  "OTel gRPC"
 check_port 8888  "SigNoz API"
 check_port 3301  "SigNoz Frontend"
 
+container_exists() {
+  docker inspect "$1" >/dev/null 2>&1
+}
+
+remove_conflicting_container() {
+  local name="$1"
+  if container_exists "${name}"; then
+    warn "Removing existing container '${name}' to avoid name conflicts"
+    docker rm -f "${name}" >/dev/null
+  fi
+}
+
+prepare_named_containers() {
+  local names=(
+    scylladb
+    redis
+    etcd
+    kafka
+    kafka-ui
+    clickhouse
+  )
+
+  if ${START_SIGNOZ}; then
+    names+=(
+      signoz-otel-collector
+      signoz
+      signoz-frontend
+    )
+  fi
+
+  for name in "${names[@]}"; do
+    remove_conflicting_container "${name}"
+  done
+}
+
 # ---------------------------------------------------------------------------
 # 2. Start Docker Compose stack
 # ---------------------------------------------------------------------------
 header "Starting infrastructure stack"
-log "Running: docker compose -f ${COMPOSE_FILE} up -d"
-docker compose -f "${COMPOSE_FILE}" up -d
+prepare_named_containers
+if ${START_SIGNOZ}; then
+  log "Running: docker compose -f ${COMPOSE_FILE} up -d"
+  docker compose -f "${COMPOSE_FILE}" up -d
+else
+  log "Running core-only infrastructure without SigNoz"
+  docker compose -f "${COMPOSE_FILE}" up -d \
+    scylladb redis etcd kafka kafka-ui clickhouse
+fi
 
 # ---------------------------------------------------------------------------
 # 3. Health-poll helpers
@@ -160,12 +226,14 @@ wait_for_healthy "etcd"       "${ETCD_TIMEOUT}"
 wait_for_healthy "kafka"      "${KAFKA_TIMEOUT}"
 wait_for_healthy "clickhouse" "${CLICKHOUSE_TIMEOUT}"
 
-# SigNoz — poll HTTP endpoint (health check in compose may take longer)
-wait_for_http "SigNoz query-service" "http://localhost:8888/api/v1/health" "${SIGNOZ_TIMEOUT}" || \
-  warn "SigNoz may still be initialising. Check: docker logs signoz"
+if ${START_SIGNOZ}; then
+  # SigNoz — poll HTTP endpoint (health check in compose may take longer)
+  wait_for_http "SigNoz query-service" "http://localhost:8888/api/v1/health" "${SIGNOZ_TIMEOUT}" || \
+    warn "SigNoz may still be initialising. Check: docker logs signoz"
 
-wait_for_http "SigNoz frontend" "http://localhost:3301" 30 || \
-  warn "SigNoz frontend may still be starting."
+  wait_for_http "SigNoz frontend" "http://localhost:3301" 30 || \
+    warn "SigNoz frontend may still be starting."
+fi
 
 # ---------------------------------------------------------------------------
 # 5. Summary
@@ -182,14 +250,15 @@ echo -e "  Kafka (broker)       ${CYAN}localhost:9092${NC}"
 echo -e "  Kafka UI             ${CYAN}http://localhost:9080${NC}"
 echo -e "  ClickHouse HTTP      ${CYAN}http://localhost:8123${NC}"
 echo -e "  ClickHouse Native    ${CYAN}localhost:9000${NC}"
-echo -e "  OTel Collector gRPC  ${CYAN}localhost:4317${NC}"
-echo -e "  OTel Collector HTTP  ${CYAN}localhost:4318${NC}"
-echo -e "  SigNoz API           ${CYAN}http://localhost:8888${NC}"
-echo -e "  SigNoz UI            ${CYAN}http://localhost:3301${NC}"
+if ${START_SIGNOZ}; then
+  echo -e "  OTel Collector gRPC  ${CYAN}localhost:4317${NC}"
+  echo -e "  OTel Collector HTTP  ${CYAN}localhost:4318${NC}"
+  echo -e "  SigNoz API           ${CYAN}http://localhost:8888${NC}"
+  echo -e "  SigNoz UI            ${CYAN}http://localhost:3301${NC}"
+fi
 echo ""
 echo -e "  ${BOLD}Next steps:${NC}"
-echo -e "    Run schema init:    ${YELLOW}./infrastructure/scripts/init-db.sh${NC}"
-echo -e "    Init ClickHouse:    ${YELLOW}./infrastructure/scripts/init-clickhouse.sh${NC}"
-echo -e "    Create Kafka topics:${YELLOW}./infrastructure/scripts/create-kafka-topics.sh${NC}"
-echo -e "    Start services:     ${YELLOW}./infrastructure/scripts/run-services.sh${NC}"
+echo -e "    Init Scylla schema: ${YELLOW}./infrastructure/scripts/init-scylla.sh${NC}"
+echo -e "    Start services:     ${YELLOW}./infrastructure/scripts/start-services.sh${NC}"
+echo -e "    Frontend dev server:${YELLOW}cd frontend && npm run dev${NC}"
 echo ""

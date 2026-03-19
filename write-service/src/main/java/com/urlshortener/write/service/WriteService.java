@@ -2,9 +2,11 @@ package com.urlshortener.write.service;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.urlshortener.core.auth.AuthenticatedUser;
 import com.urlshortener.core.domain.UrlMapping;
 import com.urlshortener.core.dto.ShortenRequest;
 import com.urlshortener.core.dto.ShortenResponse;
+import com.urlshortener.core.exception.KeyNotFoundException;
 import com.urlshortener.write.cdn.CdnPurgeService;
 import com.urlshortener.write.config.KgsClient;
 import com.urlshortener.write.config.WriteServiceProperties;
@@ -13,6 +15,7 @@ import com.urlshortener.write.repository.UrlMappingRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -88,7 +91,7 @@ public class WriteService {
      * @throws com.urlshortener.write.exception.MaliciousUrlException     if Safe Browsing blocks the URL
      * @throws IllegalArgumentException if the URL is invalid
      */
-    public ShortenResponse shorten(ShortenRequest request) {
+    public ShortenResponse shorten(ShortenRequest request, AuthenticatedUser currentUser) {
         // Step 1 — Validate and normalise
         String normalizedUrl = validationService.validateAndNormalize(request.getLongUrl());
 
@@ -117,7 +120,7 @@ public class WriteService {
         UrlMapping mapping = UrlMapping.builder()
                 .shortKey(shortKey)
                 .longUrl(normalizedUrl)
-                .userId(null)            // authentication stub — always anonymous for now
+                .userId(currentUser != null ? currentUser.userId() : null)
                 .createdAt(now)
                 .expiresAt(expiresAt)
                 .isActive(true)
@@ -125,10 +128,15 @@ public class WriteService {
 
         // Step 5 — Persist to ScyllaDB
         repository.save(mapping);
+        String shortUrl = buildShortUrl(shortKey);
+        repository.saveUserMapping(mapping, shortUrl);
 
         // Step 6 — Persist alias mapping if custom key
         if (customKey != null && !customKey.isBlank()) {
-            repository.saveAlias(customKey, shortKey, null);
+            repository.saveAlias(
+                    customKey,
+                    shortKey,
+                    currentUser != null ? currentUser.userId() : null);
         }
 
         // Step 7 — Async: pre-warm Redis cache (fire-and-forget)
@@ -142,7 +150,6 @@ public class WriteService {
         publishUrlCreatedEvent(shortKey, normalizedUrl, expiresAt, now);
 
         // Step 10 — Build and return response
-        String shortUrl = buildShortUrl(shortKey);
         ShortenResponse response = ShortenResponse.of(shortUrl, shortKey, normalizedUrl, expiresAt, now);
 
         log.info("Short URL created: shortUrl={}", shortUrl);
@@ -168,11 +175,20 @@ public class WriteService {
      *
      * @param shortKey the short key to delete
      */
-    public void delete(String shortKey) {
+    public void delete(String shortKey, AuthenticatedUser currentUser) {
         log.info("Deleting short URL: shortKey={}", shortKey);
+
+        UrlMapping mapping = repository.findByShortKey(shortKey)
+                .orElseThrow(() -> new KeyNotFoundException(shortKey));
+
+        if (mapping.getUserId() == null || mapping.getUserId() != currentUser.userId()) {
+            throw new AccessDeniedException("You do not own short key '" + shortKey + "'");
+        }
 
         // Step 1 — Remove from ScyllaDB (source of truth)
         repository.deleteByShortKey(shortKey);
+        repository.deleteUserMapping(mapping);
+        repository.deleteAlias(shortKey);
 
         // Step 2 — Purge CDN edge cache immediately (prevents stale redirects for up to 1h)
         String cacheTag  = "url-" + shortKey;
@@ -188,9 +204,26 @@ public class WriteService {
 
     private String buildShortUrl(String shortKey) {
         String domain = properties.getOwnDomain();
-        // Use https for non-localhost domains
-        String scheme = "localhost".equalsIgnoreCase(domain) ? "http" : "https";
+        String scheme = usesHttpScheme(domain) ? "http" : "https";
         return scheme + "://" + domain + "/" + shortKey;
+    }
+
+    private boolean usesHttpScheme(String domain) {
+        String host = extractHost(domain);
+        return "localhost".equalsIgnoreCase(host)
+                || "127.0.0.1".equals(host)
+                || "0.0.0.0".equals(host);
+    }
+
+    private String extractHost(String domain) {
+        if (domain == null || domain.isBlank()) {
+            return "";
+        }
+
+        int slashIndex = domain.indexOf('/');
+        String authority = slashIndex >= 0 ? domain.substring(0, slashIndex) : domain;
+        int colonIndex = authority.indexOf(':');
+        return colonIndex >= 0 ? authority.substring(0, colonIndex) : authority;
     }
 
     private void publishUrlCreatedEvent(

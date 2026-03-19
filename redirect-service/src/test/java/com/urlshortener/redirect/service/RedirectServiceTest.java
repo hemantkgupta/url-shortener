@@ -11,6 +11,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 import reactor.core.publisher.Mono;
 
 import java.time.Instant;
@@ -33,6 +35,7 @@ import static org.mockito.Mockito.when;
  * {@link io.micrometer.core.instrument.Timer} beans register without a full Spring context.
  */
 @ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 class RedirectServiceTest {
 
     private static final String SHORT_KEY  = "aB3xY9z";
@@ -76,7 +79,7 @@ class RedirectServiceTest {
         // never throws NPE when it is invoked as a side-effect in passing tests.
         when(request.getHeader("User-Agent")).thenReturn("Mozilla/5.0");
         when(request.getHeader("Referer")).thenReturn(null);
-        when(request.getHeader("X-Forwarded-For")).thenReturn(null);
+        when(request.getHeader("X-Real-IP")).thenReturn("127.0.0.1");
         when(request.getRemoteAddr()).thenReturn("127.0.0.1");
     }
 

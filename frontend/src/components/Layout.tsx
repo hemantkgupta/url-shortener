@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react'
 import { Link, NavLink, Outlet } from 'react-router-dom'
 import { Moon, Sun, Scissors } from 'lucide-react'
 import clsx from 'clsx'
+import { useAuth } from '../auth/AuthProvider'
+import GoogleSignInButton from '../auth/GoogleSignInButton'
 
 function useDarkMode() {
   const [dark, setDark] = useState<boolean>(() => {
@@ -27,6 +29,7 @@ function useDarkMode() {
 
 export default function Layout() {
   const [dark, setDark] = useDarkMode()
+  const { isAuthenticated, session, signOut } = useAuth()
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
@@ -73,6 +76,29 @@ export default function Layout() {
                 Dashboard
               </NavLink>
 
+              {isAuthenticated ? (
+                <div className="hidden sm:flex items-center gap-2 ml-3 pl-3 border-l border-gray-200 dark:border-gray-700">
+                  <div className="text-right">
+                    <p className="text-xs font-medium text-gray-700 dark:text-gray-200">
+                      {session?.profile.name ?? 'Signed in'}
+                    </p>
+                    <p className="text-[11px] text-gray-500 dark:text-gray-400">
+                      {session?.profile.email ?? 'Google'}
+                    </p>
+                  </div>
+                  <button
+                    onClick={signOut}
+                    className="px-3 py-2 rounded-md text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                  >
+                    Sign out
+                  </button>
+                </div>
+              ) : (
+                <div className="hidden sm:block ml-3">
+                  <GoogleSignInButton />
+                </div>
+              )}
+
               {/* Dark mode toggle */}
               <button
                 onClick={() => setDark((d) => !d)}
@@ -92,7 +118,12 @@ export default function Layout() {
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-gray-200 dark:border-gray-700 py-6 text-center text-xs text-gray-400 dark:text-gray-500">
+      <footer className="border-t border-gray-200 dark:border-gray-700 py-6 text-center text-xs text-gray-400 dark:text-gray-500 space-y-2">
+        {!isAuthenticated ? (
+          <div className="flex justify-center">
+            <GoogleSignInButton label="Sign in to manage, delete, and analyze the links you create." />
+          </div>
+        ) : null}
         &copy; {new Date().getFullYear()} snip.ly — Built with React &amp; Vite
       </footer>
     </div>

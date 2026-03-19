@@ -6,7 +6,7 @@
 #   - Keyspace: url_shortener
 #   - Table:    url_mapping       (primary URL store, 2-year default TTL)
 #   - Table:    alias_mapping     (human-readable aliases)
-#   - MV:       url_mapping_by_user  (per-user URL listing, newest first)
+#   - Table:    url_mapping_by_user  (per-user URL listing, newest first)
 #
 # Usage:
 #   ./infrastructure/scripts/init-scylla.sh
@@ -88,7 +88,7 @@ main() {
     # Verify the container exists and is running
     if ! docker inspect "${CONTAINER_NAME}" >/dev/null 2>&1; then
         error "Container '${CONTAINER_NAME}' does not exist."
-        error "Start the infrastructure first: ./infrastructure/scripts/start-infra.sh"
+        error "Start the infrastructure first: ./infrastructure/scripts/start-infra.sh --core-only"
         exit 1
     fi
 
@@ -149,22 +149,27 @@ main() {
          };"
 
     # -----------------------------------------------------------------------
-    # 4. Materialized view: url_mapping_by_user
-    #    - Enables efficient "list URLs by user" queries, sorted by recency
+    # 4. Per-user lookup table: url_mapping_by_user
+    #    - Maintained by write-service alongside the primary url_mapping table
     #    - Primary key: (user_id, created_at DESC, short_key)
     # -----------------------------------------------------------------------
-    run_cql "Create materialized view url_shortener.url_mapping_by_user" \
-        "CREATE MATERIALIZED VIEW IF NOT EXISTS url_shortener.url_mapping_by_user
-         AS SELECT *
-         FROM url_shortener.url_mapping
-         WHERE user_id IS NOT NULL
-           AND short_key IS NOT NULL
-           AND created_at IS NOT NULL
-         PRIMARY KEY (user_id, created_at, short_key)
+    run_cql "Create table url_shortener.url_mapping_by_user" \
+        "CREATE TABLE IF NOT EXISTS url_shortener.url_mapping_by_user (
+             user_id     bigint,
+             created_at  timestamp,
+             short_key   text,
+             long_url    text,
+             short_url   text,
+             expires_at  timestamp,
+             PRIMARY KEY (user_id, created_at, short_key)
+         )
          WITH CLUSTERING ORDER BY (created_at DESC, short_key ASC)
          AND comment = 'Per-user URL list ordered by creation time (newest first)'
          AND compaction = {
              'class': 'LeveledCompactionStrategy'
+         }
+         AND compression = {
+             'sstable_compression': 'LZ4Compressor'
          };"
 
     # -----------------------------------------------------------------------
@@ -181,8 +186,7 @@ main() {
     echo -e "${BOLD}==> ScyllaDB initialisation complete${NC}"
     echo ""
     echo "  Keyspace : url_shortener"
-    echo "  Tables   : url_mapping, alias_mapping"
-    echo "  Views    : url_mapping_by_user"
+    echo "  Tables   : url_mapping, alias_mapping, url_mapping_by_user"
     echo ""
 }
 

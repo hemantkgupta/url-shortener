@@ -13,6 +13,7 @@ import org.redisson.api.RedissonClient;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -47,7 +48,7 @@ class BloomFilterServiceTest {
         redisProps.setBloomFilterKey(BLOOM_FILTER_KEY);
         properties.setRedis(redisProps);
 
-        when(redissonClient.getBloomFilter(BLOOM_FILTER_KEY)).thenReturn(bloomFilter);
+        doReturn(bloomFilter).when(redissonClient).getBloomFilter(BLOOM_FILTER_KEY);
 
         bloomFilterService = new BloomFilterService(redissonClient, properties, meterRegistry);
     }

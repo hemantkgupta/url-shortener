@@ -2,10 +2,6 @@ package com.urlshortener.core.dto;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import com.fasterxml.jackson.datatype.jsr310.deser.InstantDeserializer;
-import com.fasterxml.jackson.datatype.jsr310.ser.InstantSerializer;
 
 import java.time.Instant;
 import java.util.Collections;
@@ -36,12 +32,8 @@ public final class AnalyticsResponse {
     private final Map<String, Long> clicksByDevice;
     private final Map<String, Long> clicksByReferrer;
 
-    @JsonSerialize(using = InstantSerializer.class)
-    @JsonDeserialize(using = InstantDeserializer.INSTANT)
     private final Instant periodFrom;
 
-    @JsonSerialize(using = InstantSerializer.class)
-    @JsonDeserialize(using = InstantDeserializer.INSTANT)
     private final Instant periodTo;
 
     @JsonCreator

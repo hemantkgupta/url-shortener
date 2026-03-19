@@ -18,6 +18,10 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
+
+import static org.mockito.Mockito.doReturn;
 
 import com.urlshortener.kgs.config.KgsProperties;
 import com.urlshortener.kgs.service.BlockAllocator.BlockAllocationException;
@@ -40,6 +44,7 @@ import io.etcd.jetcd.Txn;
  * allocation path.
  */
 @ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 class BlockAllocatorTest {
 
     // ── Mocks ─────────────────────────────────────────────────────────────────
@@ -51,10 +56,7 @@ class BlockAllocatorTest {
     private org.redisson.api.RedissonClient redisson;
 
     @Mock
-    private org.redisson.api.RBatch rBatch;
-
-    @Mock
-    private org.redisson.api.RBloomFilterAsync<Object> bloomFilter;
+    private org.redisson.api.RBloomFilter<Long> bloomFilter;
 
     @Mock
     private GetResponse getResponse;
@@ -213,9 +215,7 @@ class BlockAllocatorTest {
     }
 
     private void stubBloomFilter() {
-        when(redisson.createBatch()).thenReturn(rBatch);
-        when(rBatch.getBloomFilter(any())).thenReturn(bloomFilter);
-        when(bloomFilter.addAsync(any())).thenReturn(CompletableFuture.completedFuture(true));
-        when(rBatch.execute()).thenReturn(null);
+        doReturn(bloomFilter).when(redisson).getBloomFilter(any(String.class));
+        // bf.add(Long) returns boolean — Mockito default (false) is fine; no NPE
     }
 }

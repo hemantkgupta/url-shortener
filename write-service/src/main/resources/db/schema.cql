@@ -29,9 +29,15 @@ CREATE TABLE IF NOT EXISTS alias_mapping (
     created_at timestamp
 );
 
--- Materialized view for per-user URL lookups (analytics / management UI)
-CREATE MATERIALIZED VIEW IF NOT EXISTS url_mapping_by_user AS
-    SELECT * FROM url_mapping
-    WHERE user_id IS NOT NULL AND short_key IS NOT NULL
+-- Per-user lookup table for analytics / management UI.
+-- Maintained by the write-service alongside the primary url_mapping table.
+CREATE TABLE IF NOT EXISTS url_mapping_by_user (
+    user_id    bigint,
+    created_at timestamp,
+    short_key  text,
+    long_url   text,
+    short_url  text,
+    expires_at timestamp,
     PRIMARY KEY (user_id, created_at, short_key)
-    WITH CLUSTERING ORDER BY (created_at DESC);
+) WITH CLUSTERING ORDER BY (created_at DESC, short_key ASC)
+  AND compaction = {'class': 'LeveledCompactionStrategy'};

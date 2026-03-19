@@ -30,7 +30,7 @@ export default function ResultCard({ result }: ResultCardProps) {
 
   async function handleCopy() {
     try {
-      await navigator.clipboard.writeText(result.short_url)
+      await navigator.clipboard.writeText(result.shortUrl)
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
     } catch {
@@ -53,13 +53,13 @@ export default function ResultCard({ result }: ResultCardProps) {
       {/* Short URL box */}
       <div className="flex items-center gap-2">
         <div className="flex-1 min-w-0 bg-primary-50 dark:bg-primary-900/30 border border-primary-200 dark:border-primary-800 rounded-lg px-4 py-3">
-          <a
-            href={result.short_url}
+            <a
+            href={result.shortUrl}
             target="_blank"
             rel="noopener noreferrer"
             className="text-primary-700 dark:text-primary-300 font-semibold text-base hover:underline break-all"
           >
-            {result.short_url}
+            {result.shortUrl}
           </a>
         </div>
         <button
@@ -89,22 +89,22 @@ export default function ResultCard({ result }: ResultCardProps) {
       {/* Original URL */}
       <div className="text-sm text-gray-500 dark:text-gray-400 flex items-start gap-1.5">
         <ExternalLink className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
-        <span title={result.long_url} className="break-all">
-          {truncate(result.long_url, 80)}
+        <span title={result.longUrl} className="break-all">
+          {truncate(result.longUrl, 80)}
         </span>
       </div>
 
       {/* Meta row */}
       <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-gray-100 dark:border-gray-700">
         <span className="text-xs text-gray-400 dark:text-gray-500">
-          {result.expires_at
-            ? `Expires ${formatDate(result.expires_at)}`
+          {result.expiresAt
+            ? `Expires ${formatDate(result.expiresAt)}`
             : 'No expiration'}
         </span>
 
         <button
           onClick={() =>
-            navigate('/dashboard', { state: { selectedKey: result.short_key } })
+            navigate('/dashboard', { state: { selectedKey: result.shortKey } })
           }
           className="flex items-center gap-1.5 text-xs font-medium text-primary-600 dark:text-primary-400 hover:underline"
         >

@@ -44,11 +44,35 @@ header()  { echo -e "\n${BOLD}${CYAN}==> $*${NC}"; }
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 LOGS_DIR="${PROJECT_ROOT}/logs"
+LOCAL_ENV_FILE="${HOME}/.url-shortener-local-dev"
 
 mkdir -p "${LOGS_DIR}"
 
 # ---------------------------------------------------------------------------
+# Load local development environment if present
+# ---------------------------------------------------------------------------
+if [[ -f "${LOCAL_ENV_FILE}" ]]; then
+    log "Loading local environment from ${LOCAL_ENV_FILE}"
+    set -a
+    # shellcheck disable=SC1090
+    source "${LOCAL_ENV_FILE}"
+    set +a
+fi
+
+export URL_SHORTENER_KEY_GENERATION_SERVICE_PORT="${URL_SHORTENER_KEY_GENERATION_SERVICE_PORT:-18081}"
+export URL_SHORTENER_WRITE_SERVICE_PORT="${URL_SHORTENER_WRITE_SERVICE_PORT:-18082}"
+export URL_SHORTENER_REDIRECT_SERVICE_PORT="${URL_SHORTENER_REDIRECT_SERVICE_PORT:-18080}"
+export URL_SHORTENER_ANALYTICS_SERVICE_PORT="${URL_SHORTENER_ANALYTICS_SERVICE_PORT:-18083}"
+export URL_SHORTENER_FRONTEND_PORT="${URL_SHORTENER_FRONTEND_PORT:-13000}"
+export URL_SHORTENER_SERVICE_START_TIMEOUT_SECONDS="${URL_SHORTENER_SERVICE_START_TIMEOUT_SECONDS:-120}"
+export KGS_BASE_URL="${KGS_BASE_URL:-http://localhost:${URL_SHORTENER_KEY_GENERATION_SERVICE_PORT}}"
+export OWN_DOMAIN="${OWN_DOMAIN:-localhost:${URL_SHORTENER_FRONTEND_PORT}/r}"
+
+JAVA_BIN=""
+
+# ---------------------------------------------------------------------------
 # Service definitions: name  gradle-module  port  spring-profile
+# Compatible with macOS' default Bash 3.2, so avoid associative arrays.
 # ---------------------------------------------------------------------------
 declare -a SERVICE_NAMES=(
     "key-generation-service"
@@ -57,26 +81,42 @@ declare -a SERVICE_NAMES=(
     "analytics-service"
 )
 
-declare -A SERVICE_MODULE=(
-    ["key-generation-service"]="key-generation-service"
-    ["write-service"]="write-service"
-    ["redirect-service"]="redirect-service"
-    ["analytics-service"]="analytics-service"
-)
+service_module() {
+    case "$1" in
+        key-generation-service|write-service|redirect-service|analytics-service)
+            echo "$1"
+            ;;
+        *)
+            error "Unknown service: $1"
+            exit 1
+            ;;
+    esac
+}
 
-declare -A SERVICE_PORT=(
-    ["key-generation-service"]="8081"
-    ["write-service"]="8082"
-    ["redirect-service"]="8080"
-    ["analytics-service"]="8083"
-)
+service_port() {
+    case "$1" in
+        key-generation-service) echo "${URL_SHORTENER_KEY_GENERATION_SERVICE_PORT}" ;;
+        write-service) echo "${URL_SHORTENER_WRITE_SERVICE_PORT}" ;;
+        redirect-service) echo "${URL_SHORTENER_REDIRECT_SERVICE_PORT}" ;;
+        analytics-service) echo "${URL_SHORTENER_ANALYTICS_SERVICE_PORT}" ;;
+        *)
+            error "Unknown service: $1"
+            exit 1
+            ;;
+    esac
+}
 
-declare -A SERVICE_PROFILE=(
-    ["key-generation-service"]="dev"
-    ["write-service"]="dev"
-    ["redirect-service"]="dev"
-    ["analytics-service"]="dev"
-)
+service_profile() {
+    case "$1" in
+        key-generation-service|write-service|redirect-service|analytics-service)
+            echo "dev"
+            ;;
+        *)
+            error "Unknown service: $1"
+            exit 1
+            ;;
+    esac
+}
 
 # ---------------------------------------------------------------------------
 # Check if a port is already in use
@@ -86,29 +126,95 @@ port_in_use() {
     lsof -iTCP:"${port}" -sTCP:LISTEN -P -n >/dev/null 2>&1
 }
 
+java_major_version() {
+    local java_bin="$1"
+    local version_output
+    version_output="$("${java_bin}" -version 2>&1 | head -n 1)"
+
+    if [[ "${version_output}" =~ \"([0-9]+)\. ]]; then
+        echo "${BASH_REMATCH[1]}"
+        return 0
+    fi
+
+    if [[ "${version_output}" =~ \"([0-9]+)\" ]]; then
+        echo "${BASH_REMATCH[1]}"
+        return 0
+    fi
+
+    return 1
+}
+
+resolve_java_bin() {
+    local candidate
+    local version
+
+    if command -v java >/dev/null 2>&1; then
+        candidate="$(command -v java)"
+        version="$(java_major_version "${candidate}" || true)"
+        if [[ -n "${version}" && "${version}" -ge 21 ]]; then
+            echo "${candidate}"
+            return 0
+        fi
+    fi
+
+    if [[ -d "${HOME}/.gradle/jdks" ]]; then
+        while IFS= read -r candidate; do
+            version="$(java_major_version "${candidate}" || true)"
+            if [[ -n "${version}" && "${version}" -ge 21 ]]; then
+                echo "${candidate}"
+                return 0
+            fi
+        done < <(find "${HOME}/.gradle/jdks" -type f -path '*/bin/java' 2>/dev/null | sort)
+    fi
+
+    error "Java 21+ runtime not found. Install Java 21 or let Gradle provision a JDK under ~/.gradle/jdks."
+    exit 1
+}
+
+build_service_jars() {
+    header "Building Spring Boot service jars"
+
+    cd "${PROJECT_ROOT}"
+    ./gradlew \
+        :key-generation-service:bootJar \
+        :write-service:bootJar \
+        :redirect-service:bootJar \
+        :analytics-service:bootJar \
+        --no-daemon
+}
+
 # ---------------------------------------------------------------------------
 # Start a single service
 # ---------------------------------------------------------------------------
 start_service() {
     local name="$1"
-    local module="${SERVICE_MODULE[$name]}"
-    local port="${SERVICE_PORT[$name]}"
-    local profile="${SERVICE_PROFILE[$name]}"
+    local module
+    local port
+    local profile
     local log_file="${LOGS_DIR}/${name}.log"
     local pid_file="${LOGS_DIR}/${name}.pid"
+    local jar_file
+
+    module="$(service_module "${name}")"
+    port="$(service_port "${name}")"
+    profile="$(service_profile "${name}")"
+    jar_file="${PROJECT_ROOT}/${module}/build/libs/app.jar"
 
     if port_in_use "${port}"; then
         warn "Port ${port} already in use — ${name} may already be running. Skipping."
         return 0
     fi
 
+    if [[ ! -f "${jar_file}" ]]; then
+        error "Boot jar not found for ${name}: ${jar_file}"
+        exit 1
+    fi
+
     log "Starting ${BOLD}${name}${NC} on port ${port} (profile: ${profile})..."
 
-    cd "${PROJECT_ROOT}"
-    ./gradlew ":${module}:bootRun" \
-        --args="--spring.profiles.active=${profile}" \
-        --no-daemon \
-        > "${log_file}" 2>&1 &
+    nohup "${JAVA_BIN}" -jar "${jar_file}" \
+        --spring.profiles.active="${profile}" \
+        > "${log_file}" 2>&1 < /dev/null &
 
     local pid=$!
     echo "${pid}" > "${pid_file}"
@@ -120,11 +226,14 @@ start_service() {
 # ---------------------------------------------------------------------------
 wait_for_service() {
     local name="$1"
-    local port="${SERVICE_PORT[$name]}"
-    local url="http://localhost:${port}/actuator/health"
-    local timeout=60
+    local port
+    local url
+    local timeout="${URL_SHORTENER_SERVICE_START_TIMEOUT_SECONDS}"
     local elapsed=0
     local interval=3
+
+    port="$(service_port "${name}")"
+    url="http://localhost:${port}/actuator/health"
 
     log "Waiting for ${name} to become ready at ${url}..."
     while ! curl -sf --max-time 2 "${url}" >/dev/null 2>&1; do
@@ -159,7 +268,11 @@ main() {
     echo ""
     log "Project root : ${PROJECT_ROOT}"
     log "Log directory: ${LOGS_DIR}"
+    JAVA_BIN="${URL_SHORTENER_JAVA_BIN:-$(resolve_java_bin)}"
+    log "Java runtime : ${JAVA_BIN}"
     echo ""
+
+    build_service_jars
 
     # Start all services
     for name in "${SERVICE_NAMES[@]}"; do
@@ -181,16 +294,16 @@ main() {
     echo ""
     echo -e "  ${BOLD}Service                 URL                        Log${NC}"
     echo    "  ─────────────────────────────────────────────────────────────────────────"
-    echo -e "  key-generation-service  ${CYAN}http://localhost:8081${NC}      ${LOGS_DIR}/key-generation-service.log"
-    echo -e "  write-service           ${CYAN}http://localhost:8082${NC}      ${LOGS_DIR}/write-service.log"
-    echo -e "  redirect-service        ${CYAN}http://localhost:8080${NC}      ${LOGS_DIR}/redirect-service.log"
-    echo -e "  analytics-service       ${CYAN}http://localhost:8083${NC}      ${LOGS_DIR}/analytics-service.log"
+    echo -e "  key-generation-service  ${CYAN}http://localhost:${URL_SHORTENER_KEY_GENERATION_SERVICE_PORT}${NC}      ${LOGS_DIR}/key-generation-service.log"
+    echo -e "  write-service           ${CYAN}http://localhost:${URL_SHORTENER_WRITE_SERVICE_PORT}${NC}      ${LOGS_DIR}/write-service.log"
+    echo -e "  redirect-service        ${CYAN}http://localhost:${URL_SHORTENER_REDIRECT_SERVICE_PORT}${NC}      ${LOGS_DIR}/redirect-service.log"
+    echo -e "  analytics-service       ${CYAN}http://localhost:${URL_SHORTENER_ANALYTICS_SERVICE_PORT}${NC}      ${LOGS_DIR}/analytics-service.log"
     echo ""
     echo -e "  ${BOLD}Actuator health endpoints:${NC}"
-    echo -e "    KGS      : ${CYAN}http://localhost:8081/actuator/health${NC}"
-    echo -e "    Write    : ${CYAN}http://localhost:8082/actuator/health${NC}"
-    echo -e "    Redirect : ${CYAN}http://localhost:8080/actuator/health${NC}"
-    echo -e "    Analytics: ${CYAN}http://localhost:8083/actuator/health${NC}"
+    echo -e "    KGS      : ${CYAN}http://localhost:${URL_SHORTENER_KEY_GENERATION_SERVICE_PORT}/actuator/health${NC}"
+    echo -e "    Write    : ${CYAN}http://localhost:${URL_SHORTENER_WRITE_SERVICE_PORT}/actuator/health${NC}"
+    echo -e "    Redirect : ${CYAN}http://localhost:${URL_SHORTENER_REDIRECT_SERVICE_PORT}/actuator/health${NC}"
+    echo -e "    Analytics: ${CYAN}http://localhost:${URL_SHORTENER_ANALYTICS_SERVICE_PORT}/actuator/health${NC}"
     echo ""
     echo -e "  To stop all services: ${YELLOW}./infrastructure/scripts/stop-all.sh${NC}"
     echo ""

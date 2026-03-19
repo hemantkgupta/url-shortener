@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { Loader2, Plus } from 'lucide-react'
+import GoogleSignInButton from '../auth/GoogleSignInButton'
+import { useAuth } from '../auth/AuthProvider'
 import LinkTable from '../components/LinkTable'
 import AnalyticsPanel from '../components/AnalyticsPanel'
 import { useUserLinks } from '../api/urls'
@@ -12,15 +14,30 @@ interface LocationState {
 export default function DashboardPage() {
   const navigate = useNavigate()
   const location = useLocation()
+  const { isAuthenticated } = useAuth()
   const locationState = location.state as LocationState | null
 
   const [selectedKey, setSelectedKey] = useState<string | null>(
     locationState?.selectedKey ?? null,
   )
 
-  const { data, isLoading, error } = useUserLinks()
+  const { data, isLoading, error } = useUserLinks(isAuthenticated)
 
   const links = data ?? []
+
+  if (!isAuthenticated) {
+    return (
+      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-16 text-center space-y-4">
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">Dashboard</h1>
+        <p className="text-sm text-gray-500 dark:text-gray-400">
+          Sign in with Google to view your links, delete them, and access analytics.
+        </p>
+        <div className="flex justify-center">
+          <GoogleSignInButton />
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10">

@@ -11,7 +11,6 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.urlshortener.core.util.Base62Encoder;
 import com.urlshortener.kgs.config.KgsProperties;
 import com.urlshortener.kgs.service.BlockAllocator;
 import com.urlshortener.kgs.service.KeyBlock;
@@ -60,7 +59,7 @@ public class KeyGenerationController {
      * <p>If the current block is exhausted a new one is fetched from etcd
      * transparently inside {@link KeyBlockCache#nextKey()}.
      *
-     * @return 200 OK with a plain-text Base-62 key (7 chars)
+     * @return 200 OK with a plain-text Base-62 key (8 chars)
      */
     @PostMapping(value = "/next", produces = MediaType.TEXT_PLAIN_VALUE)
     public ResponseEntity<String> nextKey() {
@@ -76,22 +75,17 @@ public class KeyGenerationController {
      * exhausted.  They then maintain their own atomic counter over
      * {@code [startKey, endKey)} without further KGS interaction.
      *
-     * @return 200 OK with {@link KeyBlockResponse} containing Base-62
-     *         encoded start/end keys and metadata
+     * @return 200 OK with {@link KeyBlockResponse} containing raw start/end
+     *         counters and metadata
      */
     @PostMapping(value = "/next-block", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<KeyBlockResponse> nextBlock() {
         KeyBlock block = blockAllocator.allocateBlock();
         log.info("Issued block to write-service: {}", block);
 
-        String startKey = Base62Encoder.encode(
-                Base62Encoder.bitReverse(block.start(), 40), 7);
-        String endKey = Base62Encoder.encode(
-                Base62Encoder.bitReverse(block.end(), 40), 7);
-
         KeyBlockResponse response = new KeyBlockResponse(
-                startKey,
-                endKey,
+                block.start(),
+                block.end(),
                 block.size(),
                 block.region());
 

@@ -1,12 +1,29 @@
 import { useParams, Link } from 'react-router-dom'
 import { ArrowLeft, Loader2, AlertCircle } from 'lucide-react'
+import GoogleSignInButton from '../auth/GoogleSignInButton'
+import { useAuth } from '../auth/AuthProvider'
 import AnalyticsPanel from '../components/AnalyticsPanel'
 import { useAnalytics } from '../api/urls'
 
 export default function AnalyticsPage() {
   const { shortKey = '' } = useParams<{ shortKey: string }>()
+  const { isAuthenticated } = useAuth()
 
-  const { isLoading, error } = useAnalytics(shortKey, Boolean(shortKey))
+  const { isLoading, error } = useAnalytics(shortKey, isAuthenticated && Boolean(shortKey))
+
+  if (!isAuthenticated) {
+    return (
+      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-16 text-center space-y-4">
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">Analytics</h1>
+        <p className="text-sm text-gray-500 dark:text-gray-400">
+          Sign in with Google to access protected analytics for your links.
+        </p>
+        <div className="flex justify-center">
+          <GoogleSignInButton />
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10">

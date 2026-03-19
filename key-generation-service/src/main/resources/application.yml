@@ -1,5 +1,5 @@
 server:
-  port: 8081
+  port: ${URL_SHORTENER_KEY_GENERATION_SERVICE_PORT:8081}
 
 spring:
   application:

@@ -29,34 +29,48 @@ import java.util.Optional;
 public class UrlMappingRepository {
 
     private static final Logger log = LoggerFactory.getLogger(UrlMappingRepository.class);
+    private static final String KEYSPACE = "url_shortener";
 
     // ── CQL statements ────────────────────────────────────────────────────────
 
     private static final String INSERT_URL_MAPPING =
-            "INSERT INTO url_mapping (short_key, long_url, user_id, created_at, expires_at, is_active) " +
+            "INSERT INTO " + KEYSPACE + ".url_mapping (short_key, long_url, user_id, created_at, expires_at, is_active) " +
             "VALUES (?, ?, ?, ?, ?, ?) USING TTL ?";
 
     private static final String SELECT_URL_MAPPING =
             "SELECT short_key, long_url, user_id, created_at, expires_at, is_active " +
-            "FROM url_mapping WHERE short_key = ?";
+            "FROM " + KEYSPACE + ".url_mapping WHERE short_key = ?";
 
     private static final String INSERT_ALIAS_MAPPING =
-            "INSERT INTO alias_mapping (alias, short_key, user_id, created_at) " +
+            "INSERT INTO " + KEYSPACE + ".alias_mapping (alias, short_key, user_id, created_at) " +
             "VALUES (?, ?, ?, ?)";
 
+    private static final String INSERT_USER_URL_MAPPING =
+            "INSERT INTO " + KEYSPACE + ".url_mapping_by_user (user_id, created_at, short_key, long_url, short_url, expires_at) " +
+            "VALUES (?, ?, ?, ?, ?, ?)";
+
     private static final String EXISTS_ALIAS =
-            "SELECT alias FROM alias_mapping WHERE alias = ? LIMIT 1";
+            "SELECT alias FROM " + KEYSPACE + ".alias_mapping WHERE alias = ? LIMIT 1";
 
     private static final String DELETE_URL_MAPPING =
-            "DELETE FROM url_mapping WHERE short_key = ?";
+            "DELETE FROM " + KEYSPACE + ".url_mapping WHERE short_key = ?";
+
+    private static final String DELETE_ALIAS_MAPPING =
+            "DELETE FROM " + KEYSPACE + ".alias_mapping WHERE alias = ?";
+
+    private static final String DELETE_USER_URL_MAPPING =
+            "DELETE FROM " + KEYSPACE + ".url_mapping_by_user WHERE user_id = ? AND created_at = ? AND short_key = ?";
 
     // ── Prepared statements (populated @PostConstruct) ────────────────────────
 
     private PreparedStatement insertUrlMappingPs;
     private PreparedStatement selectUrlMappingPs;
     private PreparedStatement insertAliasMappingPs;
+    private PreparedStatement insertUserUrlMappingPs;
     private PreparedStatement existsAliasPs;
     private PreparedStatement deleteUrlMappingPs;
+    private PreparedStatement deleteAliasMappingPs;
+    private PreparedStatement deleteUserUrlMappingPs;
 
     private final CqlSession cqlSession;
 
@@ -70,8 +84,11 @@ public class UrlMappingRepository {
         insertUrlMappingPs  = cqlSession.prepare(INSERT_URL_MAPPING);
         selectUrlMappingPs  = cqlSession.prepare(SELECT_URL_MAPPING);
         insertAliasMappingPs = cqlSession.prepare(INSERT_ALIAS_MAPPING);
+        insertUserUrlMappingPs = cqlSession.prepare(INSERT_USER_URL_MAPPING);
         existsAliasPs       = cqlSession.prepare(EXISTS_ALIAS);
         deleteUrlMappingPs  = cqlSession.prepare(DELETE_URL_MAPPING);
+        deleteAliasMappingPs = cqlSession.prepare(DELETE_ALIAS_MAPPING);
+        deleteUserUrlMappingPs = cqlSession.prepare(DELETE_USER_URL_MAPPING);
         log.info("CQL statements prepared successfully");
     }
 
@@ -149,6 +166,24 @@ public class UrlMappingRepository {
         log.debug("Saved alias_mapping: alias={}, shortKey={}", alias, shortKey);
     }
 
+    public void saveUserMapping(UrlMapping mapping, String shortUrl) {
+        if (mapping.getUserId() == null) {
+            return;
+        }
+
+        BoundStatement bound = insertUserUrlMappingPs.bind(
+                mapping.getUserId(),
+                mapping.getCreatedAt(),
+                mapping.getShortKey(),
+                mapping.getLongUrl(),
+                shortUrl,
+                mapping.getExpiresAt());
+
+        cqlSession.execute(bound);
+        log.debug("Saved url_mapping_by_user: userId={}, shortKey={}",
+                mapping.getUserId(), mapping.getShortKey());
+    }
+
     /**
      * Checks whether an alias already exists in the {@code alias_mapping} table.
      *
@@ -171,6 +206,26 @@ public class UrlMappingRepository {
         BoundStatement bound = deleteUrlMappingPs.bind(shortKey);
         cqlSession.execute(bound);
         log.debug("Deleted url_mapping: shortKey={}", shortKey);
+    }
+
+    public void deleteAlias(String alias) {
+        BoundStatement bound = deleteAliasMappingPs.bind(alias);
+        cqlSession.execute(bound);
+        log.debug("Deleted alias_mapping: alias={}", alias);
+    }
+
+    public void deleteUserMapping(UrlMapping mapping) {
+        if (mapping.getUserId() == null) {
+            return;
+        }
+
+        BoundStatement bound = deleteUserUrlMappingPs.bind(
+                mapping.getUserId(),
+                mapping.getCreatedAt(),
+                mapping.getShortKey());
+        cqlSession.execute(bound);
+        log.debug("Deleted url_mapping_by_user: userId={}, shortKey={}",
+                mapping.getUserId(), mapping.getShortKey());
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────

@@ -3,6 +3,7 @@ package com.urlshortener.redirect.service;
 import com.urlshortener.redirect.config.RedirectServiceProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.redis.core.ReactiveRedisTemplate;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
@@ -41,7 +42,7 @@ public class CacheService {
     private final double xfetchBeta;
 
     public CacheService(
-            ReactiveRedisTemplate<String, String> redisTemplate,
+            @Qualifier("reactiveRedisTemplate") ReactiveRedisTemplate<String, String> redisTemplate,
             RedirectServiceProperties properties) {
         this.redisTemplate = redisTemplate;
         this.urlKeyPrefix = properties.getRedis().getUrlKeyPrefix();

@@ -1,7 +1,10 @@
 // Root build — only orchestration tasks, no source code here
 plugins {
     alias(libs.plugins.gradle.versions)   // ./gradlew dependencyUpdates
-    alias(libs.plugins.spotless) apply false
+    // NOTE: spotless and jib are declared as buildSrc classpath dependencies and applied
+    // via convention plugins (url-shortener.java-conventions, url-shortener.spring-conventions).
+    // Do NOT re-declare them here with a version — Gradle 8 rejects duplicate plugin
+    // declarations when the plugin is already on the classpath from buildSrc.
 }
 
 group = "com.urlshortener"

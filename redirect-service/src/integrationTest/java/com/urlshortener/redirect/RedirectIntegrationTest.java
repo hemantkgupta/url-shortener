@@ -9,10 +9,10 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
+import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.HttpStatus;
@@ -23,6 +23,7 @@ import org.springframework.test.context.DynamicPropertySource;
 import org.testcontainers.cassandra.CassandraContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
+import org.testcontainers.utility.DockerImageName;
 
 import java.net.InetSocketAddress;
 import java.time.Duration;
@@ -75,8 +76,11 @@ class RedirectIntegrationTest {
      * The image is overridden to scylladb/scylla:6.1 to match production.
      */
     @Container
-    static final CassandraContainer<?> SCYLLA =
-            new CassandraContainer<>("scylladb/scylla:6.1")
+    static final CassandraContainer SCYLLA =
+            new CassandraContainer(
+                    DockerImageName.parse("scylladb/scylla:6.1")
+                            .asCompatibleSubstituteFor("cassandra"))
+                    .withInitScript("db/redirect-schema.cql")
                     .withStartupTimeout(Duration.ofMinutes(3));
 
     // ── Property wiring ───────────────────────────────────────────────────────
@@ -138,27 +142,12 @@ class RedirectIntegrationTest {
     // ── Schema & seed setup ───────────────────────────────────────────────────
 
     /**
-     * Ensures the keyspace and table exist before each test, then clears any
-     * leftover state from previous tests so each test is hermetic.
+     * Clears any leftover state from previous tests so each test is hermetic.
      */
     @BeforeEach
     void setUpSchemaAndClean() {
-        cqlSession.execute(
-                "CREATE KEYSPACE IF NOT EXISTS url_shortener "
-                + "WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1}");
-
-        cqlSession.execute(
-                "CREATE TABLE IF NOT EXISTS url_shortener.url_mappings ("
-                + "  short_key  TEXT PRIMARY KEY,"
-                + "  long_url   TEXT,"
-                + "  user_id    BIGINT,"
-                + "  created_at TIMESTAMP,"
-                + "  expires_at TIMESTAMP,"
-                + "  is_active  BOOLEAN"
-                + ")");
-
         // Wipe any rows seeded by previous tests
-        cqlSession.execute("TRUNCATE url_shortener.url_mappings");
+        cqlSession.execute("TRUNCATE url_mapping");
 
         // Wipe cache keys seeded by previous tests
         stringRedisTemplate.delete(CACHE_KEY);
@@ -174,7 +163,7 @@ class RedirectIntegrationTest {
     void redirect_existingKey_returns302() {
         // Seed ScyllaDB with an active, non-expired mapping
         cqlSession.execute(
-                "INSERT INTO url_shortener.url_mappings "
+                "INSERT INTO url_mapping "
                 + "(short_key, long_url, user_id, created_at, is_active) "
                 + "VALUES ('" + SHORT_KEY + "', '" + LONG_URL + "', null, toTimestamp(now()), true)");
 
@@ -232,7 +221,7 @@ class RedirectIntegrationTest {
      * itself a {@link MockBean} in these tests, so the Redisson client is never actually
      * called.  We still provide a valid configuration bean to satisfy the Spring context.
      */
-    @Configuration
+    @TestConfiguration
     static class TestRedissonConfig {
 
         @Bean

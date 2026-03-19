@@ -2,10 +2,6 @@ package com.urlshortener.core.dto;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import com.fasterxml.jackson.datatype.jsr310.deser.InstantDeserializer;
-import com.fasterxml.jackson.datatype.jsr310.ser.InstantSerializer;
 
 import java.time.Instant;
 import java.util.Objects;
@@ -24,12 +20,8 @@ public final class ShortenResponse {
     private final String shortKey;
     private final String longUrl;
 
-    @JsonSerialize(using = InstantSerializer.class)
-    @JsonDeserialize(using = InstantDeserializer.INSTANT)
     private final Instant expiresAt;   // nullable — absent when link never expires
 
-    @JsonSerialize(using = InstantSerializer.class)
-    @JsonDeserialize(using = InstantDeserializer.INSTANT)
     private final Instant createdAt;
 
     @JsonCreator

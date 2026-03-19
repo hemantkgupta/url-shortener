@@ -45,7 +45,7 @@ export default function AnalyticsPanel({ shortKey }: AnalyticsPanelProps) {
     )
   }
 
-  if (!data || data.total_clicks === 0) {
+  if (!data || data.totalClicks === 0) {
     return (
       <p className="text-sm text-gray-400 dark:text-gray-500 text-center py-10">
         No analytics data yet for this link.
@@ -54,18 +54,18 @@ export default function AnalyticsPanel({ shortKey }: AnalyticsPanelProps) {
   }
 
   // Clicks per day — sorted chronologically
-  const clicksByDay = Object.entries(data.clicks_by_day)
+  const clicksByDay = Object.entries(data.clicksByDay)
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([date, count]) => ({ date: date.slice(5), count })) // "MM-DD"
 
   // Top 5 by device
-  const deviceData = Object.entries(data.clicks_by_device)
+  const deviceData = Object.entries(data.clicksByDevice)
     .sort(([, a], [, b]) => b - a)
     .slice(0, 5)
     .map(([name, value]) => ({ name, value }))
 
   // Top 5 by country
-  const countryData = Object.entries(data.clicks_by_country)
+  const countryData = Object.entries(data.clicksByCountry)
     .sort(([, a], [, b]) => b - a)
     .slice(0, 5)
     .map(([name, value]) => ({ name, value }))
@@ -76,14 +76,14 @@ export default function AnalyticsPanel({ shortKey }: AnalyticsPanelProps) {
       <div className="flex items-center gap-4">
         <div className="bg-primary-50 dark:bg-primary-900/30 rounded-xl px-6 py-4 inline-flex flex-col items-center">
           <span className="text-4xl font-bold text-primary-700 dark:text-primary-300">
-            {data.total_clicks.toLocaleString()}
+            {data.totalClicks.toLocaleString()}
           </span>
           <span className="text-xs text-gray-500 dark:text-gray-400 mt-1 uppercase tracking-wide">
             Total Clicks
           </span>
         </div>
         <div className="text-xs text-gray-400 dark:text-gray-500">
-          <p>Period: {data.period_from} → {data.period_to}</p>
+          <p>Period: {data.periodFrom} → {data.periodTo}</p>
         </div>
       </div>
 

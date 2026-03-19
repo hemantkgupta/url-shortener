@@ -10,21 +10,23 @@ package com.urlshortener.core.exception;
 public final class RateLimitException extends RuntimeException {
 
     private final String clientId;
-    private final int limitPerSecond;
+    private final int limit;
+    private final long windowSeconds;
 
     /**
      * Constructs a new {@code RateLimitException}.
      *
      * @param clientId       identifier of the throttled client (e.g. API key,
      *                       IP address); must not be {@code null}
-     * @param limitPerSecond the configured rate limit that was exceeded (requests
-     *                       per second); must be positive
+     * @param limit the configured rate limit that was exceeded; must be positive
+     * @param windowSeconds the time window in seconds that the limit applies to
      */
-    public RateLimitException(String clientId, int limitPerSecond) {
+    public RateLimitException(String clientId, int limit, long windowSeconds) {
         super("Client '" + clientId + "' has exceeded the rate limit of "
-              + limitPerSecond + " request(s) per second");
-        this.clientId       = clientId;
-        this.limitPerSecond = limitPerSecond;
+              + limit + " request(s) per " + windowSeconds + " second window");
+        this.clientId = clientId;
+        this.limit = limit;
+        this.windowSeconds = windowSeconds;
     }
 
     /**
@@ -37,11 +39,20 @@ public final class RateLimitException extends RuntimeException {
     }
 
     /**
-     * Returns the rate limit (requests per second) that was exceeded.
+     * Returns the rate limit that was exceeded.
      *
-     * @return configured limit in requests per second
+     * @return configured limit in requests per window
      */
-    public int getLimitPerSecond() {
-        return limitPerSecond;
+    public int getLimit() {
+        return limit;
+    }
+
+    /**
+     * Returns the time window in seconds that the limit applies to.
+     *
+     * @return time window in seconds
+     */
+    public long getWindowSeconds() {
+        return windowSeconds;
     }
 }

@@ -21,6 +21,9 @@ export default function HomePage() {
           <p className="mt-3 text-base text-gray-500 dark:text-gray-400">
             Paste a long URL and get a short link instantly
           </p>
+          <p className="mt-2 text-sm text-gray-400 dark:text-gray-500">
+            Sign in with Google if you want to manage, delete, or analyze the link later.
+          </p>
         </div>
 
         {/* Form card */}

@@ -14,6 +14,8 @@ dependencies {
 
     // Spring web — analytics REST API
     implementation(libs.bundles.spring.web.base)
+    implementation(libs.spring.boot.starter.security)
+    implementation(libs.spring.boot.starter.oauth2.resource.server)
 
     // ── Flink (provided — cluster runtime supplies these) ─────────────────────
     val flinkProvided by configurations
@@ -31,6 +33,11 @@ dependencies {
     // Redis — real-time click counters (INCR click_count:{key})
     implementation(libs.spring.boot.starter.data.redis)
     implementation(libs.lettuce.core)
+    implementation(libs.redisson)
+    implementation(libs.jedis)
+
+    // ClickHouse connection pool + Spring JDBC
+    implementation(libs.spring.boot.starter.jdbc)
 
     // ClickHouse — OLAP store for historical analytics
     implementation(libs.clickhouse.jdbc)
@@ -47,6 +54,7 @@ dependencies {
     testImplementation(libs.bundles.testing.unit)
     testImplementation(libs.spring.kafka.test)
     testImplementation(libs.spring.boot.starter.test)
+    testImplementation(libs.spring.security.test)
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 
     // ── Integration tests ─────────────────────────────────────────────────────
@@ -59,6 +67,7 @@ dependencies {
     integrationTestImplementation(libs.testcontainers.redis)
     integrationTestImplementation(libs.spring.kafka.test)
     integrationTestImplementation(libs.spring.boot.starter.test)
+    integrationTestImplementation(libs.spring.security.test)
     integrationTestImplementation(libs.awaitility)
 }
 
@@ -76,15 +85,9 @@ jib {
         mainClass = "com.urlshortener.analytics.AnalyticsServiceApplication"
         ports = listOf("8083", "9093")
     }
-    extraDirectories {
-        // Include Flink libs as a separate layer for faster Docker rebuilds
-        paths {
-            path {
-                setFrom(configurations["flinkProvided"])
-                into = "/flink/lib"
-            }
-        }
-    }
+    // Flink libs are bundled inside the bootJar (classpath block above) for local/embedded mode.
+    // For production cluster submission, build a separate thin jar with flink-provided scope
+    // and submit via `flink run` — no extraDirectories needed here.
 }
 
 springBoot {

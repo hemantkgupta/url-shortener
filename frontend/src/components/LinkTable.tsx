@@ -143,13 +143,13 @@ export default function LinkTable({
           ) : (
             links.map((link) => (
               <tr
-                key={link.short_key}
+                key={link.shortKey}
                 onClick={() =>
-                  onSelectKey(selectedKey === link.short_key ? null : link.short_key)
+                  onSelectKey(selectedKey === link.shortKey ? null : link.shortKey)
                 }
                 className={clsx(
                   'cursor-pointer transition-colors',
-                  selectedKey === link.short_key
+                  selectedKey === link.shortKey
                     ? 'bg-primary-50 dark:bg-primary-900/20'
                     : 'hover:bg-gray-50 dark:hover:bg-gray-800/40',
                 )}
@@ -158,48 +158,48 @@ export default function LinkTable({
                 <td className="px-4 py-3 whitespace-nowrap">
                   <div className="flex items-center gap-1">
                     <a
-                      href={link.short_url}
+                      href={link.shortUrl}
                       target="_blank"
                       rel="noopener noreferrer"
                       onClick={(e) => e.stopPropagation()}
                       className="text-primary-600 dark:text-primary-400 text-sm font-medium hover:underline flex items-center gap-0.5"
                     >
-                      {link.short_key}
+                      {link.shortKey}
                       <ExternalLink className="w-3 h-3 ml-0.5 opacity-60" />
                     </a>
-                    <CopyButton text={link.short_url} />
+                    <CopyButton text={link.shortUrl} />
                   </div>
                 </td>
 
                 {/* Original URL */}
                 <td className="px-4 py-3 max-w-xs">
                   <span
-                    title={link.long_url}
+                    title={link.longUrl}
                     className="text-sm text-gray-600 dark:text-gray-300 block truncate"
                   >
-                    {truncate(link.long_url, 50)}
+                    {truncate(link.longUrl, 50)}
                   </span>
                 </td>
 
                 {/* Created At */}
                 <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                  {formatDate(link.created_at)}
+                  {formatDate(link.createdAt)}
                 </td>
 
                 {/* Expires At */}
                 <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                  {link.expires_at ? formatDate(link.expires_at) : '—'}
+                  {link.expiresAt ? formatDate(link.expiresAt) : '—'}
                 </td>
 
                 {/* Clicks */}
                 <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300 font-medium">
-                  {link.total_clicks !== undefined ? link.total_clicks.toLocaleString() : '—'}
+                  {link.totalClicks !== undefined ? link.totalClicks.toLocaleString() : '—'}
                 </td>
 
                 {/* Actions */}
                 <td className="px-4 py-3 whitespace-nowrap">
                   <button
-                    onClick={(e) => handleDelete(e, link.short_key)}
+                    onClick={(e) => handleDelete(e, link.shortKey)}
                     disabled={isDeleting}
                     aria-label="Delete link"
                     title="Delete"

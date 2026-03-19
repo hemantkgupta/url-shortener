@@ -17,16 +17,19 @@ import java.util.List;
 import java.util.UUID;
 
 /**
- * Service that reads the {@code url_mapping_by_user} materialized view from
+ * Service that reads the {@code url_mapping_by_user} table from
  * ScyllaDB / Cassandra to return a paginated list of shortened URLs owned by a user.
  *
  * <h2>Schema assumptions</h2>
- * The materialized view {@code url_mapping_by_user} is assumed to have:
+ * The per-user lookup table {@code url_mapping_by_user} is assumed to have:
  * <pre>
- * CREATE MATERIALIZED VIEW url_mapping_by_user AS
- *     SELECT user_id, short_key, long_url, short_url, created_at, expires_at
- *     FROM url_mappings
- *     WHERE user_id IS NOT NULL AND short_key IS NOT NULL
+ * CREATE TABLE url_mapping_by_user (
+ *     user_id BIGINT,
+ *     created_at TIMESTAMP,
+ *     short_key TEXT,
+ *     long_url TEXT,
+ *     short_url TEXT,
+ *     expires_at TIMESTAMP,
  *     PRIMARY KEY (user_id, created_at, short_key)
  *     WITH CLUSTERING ORDER BY (created_at DESC, short_key ASC);
  * </pre>

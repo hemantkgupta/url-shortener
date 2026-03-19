@@ -1,10 +1,14 @@
 package com.urlshortener.write.exception;
 
+import com.urlshortener.core.exception.KeyNotFoundException;
+import com.urlshortener.core.exception.RateLimitException;
 import jakarta.validation.ConstraintViolationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -60,6 +64,39 @@ public class WriteExceptionHandler {
         pd.setTitle("Service Unavailable");
         pd.setProperty("timestamp", Instant.now().toString());
         return pd;
+    }
+
+    @ExceptionHandler(KeyNotFoundException.class)
+    public ProblemDetail handleKeyNotFound(KeyNotFoundException ex) {
+        log.warn("Short key not found: {}", ex.getShortKey());
+        ProblemDetail pd = ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, ex.getMessage());
+        pd.setType(URI.create("urn:write-service:key-not-found"));
+        pd.setTitle("Short URL Not Found");
+        pd.setProperty("timestamp", Instant.now().toString());
+        return pd;
+    }
+
+    @ExceptionHandler(AccessDeniedException.class)
+    public ProblemDetail handleAccessDenied(AccessDeniedException ex) {
+        log.warn("Access denied: {}", ex.getMessage());
+        ProblemDetail pd = ProblemDetail.forStatusAndDetail(HttpStatus.FORBIDDEN, ex.getMessage());
+        pd.setType(URI.create("urn:write-service:forbidden"));
+        pd.setTitle("Forbidden");
+        pd.setProperty("timestamp", Instant.now().toString());
+        return pd;
+    }
+
+    @ExceptionHandler(RateLimitException.class)
+    public ResponseEntity<ProblemDetail> handleRateLimit(RateLimitException ex) {
+        log.warn("Rate limit exceeded: clientId={} limit={} windowSeconds={}",
+                ex.getClientId(), ex.getLimit(), ex.getWindowSeconds());
+        ProblemDetail pd = ProblemDetail.forStatusAndDetail(HttpStatus.TOO_MANY_REQUESTS, ex.getMessage());
+        pd.setType(URI.create("urn:write-service:rate-limit"));
+        pd.setTitle("Too Many Requests");
+        pd.setProperty("timestamp", Instant.now().toString());
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                .header("Retry-After", Long.toString(ex.getWindowSeconds()))
+                .body(pd);
     }
 
     // ── Validation exceptions ─────────────────────────────────────────────────

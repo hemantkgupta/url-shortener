@@ -1,5 +1,5 @@
 server:
-  port: 8083
+  port: ${URL_SHORTENER_ANALYTICS_SERVICE_PORT:8083}
 
 spring:
   application:
@@ -12,6 +12,11 @@ spring:
 
 # ── Analytics service custom properties ──────────────────────────────────────
 analytics:
+  security:
+    google:
+      issuer-uri: ${GOOGLE_ISSUER_URI:https://accounts.google.com}
+      jwk-set-uri: ${GOOGLE_JWK_SET_URI:https://www.googleapis.com/oauth2/v3/certs}
+      audience: ${URL_SHORTENER_AUTH_GOOGLE_CLIENT_ID:${GOOGLE_CLIENT_ID:}}
   kafka:
     bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
     group-id: analytics-flink

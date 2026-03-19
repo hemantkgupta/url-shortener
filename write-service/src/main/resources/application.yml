@@ -1,5 +1,5 @@
 server:
-  port: 8082
+  port: ${URL_SHORTENER_WRITE_SERVICE_PORT:8082}
 
 spring:
   application:
@@ -22,8 +22,13 @@ spring:
       port: ${REDIS_PORT:6379}
 
 write:
-  kgs-base-url: ${KGS_BASE_URL:http://localhost:8081}
+  kgs-base-url: ${KGS_BASE_URL:http://localhost:${URL_SHORTENER_KEY_GENERATION_SERVICE_PORT:8081}}
   own-domain: ${OWN_DOMAIN:localhost}
+  security:
+    google:
+      issuer-uri: ${GOOGLE_ISSUER_URI:https://accounts.google.com}
+      jwk-set-uri: ${GOOGLE_JWK_SET_URI:https://www.googleapis.com/oauth2/v3/certs}
+      audience: ${URL_SHORTENER_AUTH_GOOGLE_CLIENT_ID:${GOOGLE_CLIENT_ID:}}
   cassandra:
     contact-points: ${CASSANDRA_CONTACT_POINTS:localhost}
     port: ${CASSANDRA_PORT:9042}
@@ -45,6 +50,9 @@ write:
     cloudflare:
       zone-id: ${CLOUDFLARE_ZONE_ID:}
       api-token: ${CLOUDFLARE_API_TOKEN:}
+  rate-limit:
+    anonymous-creates-per-hour: ${WRITE_ANON_CREATE_LIMIT_PER_HOUR:30}
+    authenticated-creates-per-hour: ${WRITE_AUTH_CREATE_LIMIT_PER_HOUR:300}
 
 management:
   endpoints:

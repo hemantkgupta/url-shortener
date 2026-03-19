@@ -44,9 +44,9 @@ export default function ShortenForm({ onSuccess }: ShortenFormProps) {
 
     mutate(
       {
-        long_url: trimmed,
-        custom_key: customKey.trim() || undefined,
-        ttl_days: ttlDays ? parseInt(ttlDays, 10) : undefined,
+        longUrl: trimmed,
+        customKey: customKey.trim() || undefined,
+        ttlDays: ttlDays ? parseInt(ttlDays, 10) : undefined,
       },
       {
         onSuccess: (data) => {

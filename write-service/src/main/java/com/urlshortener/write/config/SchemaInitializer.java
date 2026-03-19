@@ -9,7 +9,7 @@ import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
+import java.util.stream.Collectors;
 
 /**
  * Runs the bundled {@code db/schema.cql} script at application startup to ensure
@@ -37,14 +37,17 @@ public class SchemaInitializer {
         log.info("Running ScyllaDB schema initialisation from {}", SCHEMA_RESOURCE);
 
         ClassPathResource resource = new ClassPathResource(SCHEMA_RESOURCE);
-        String cql = resource.getContentAsString(StandardCharsets.UTF_8);
+        String cql = resource.getContentAsString(StandardCharsets.UTF_8)
+                .lines()
+                .filter(line -> !line.stripLeading().startsWith("--"))
+                .collect(Collectors.joining("\n"));
 
-        // Split on semicolons, trim whitespace, skip empty/comment-only blocks
+        // Split on semicolons, trim whitespace, skip empty blocks
         String[] statements = cql.split(";");
         int executed = 0;
         for (String raw : statements) {
             String stmt = raw.strip();
-            if (stmt.isEmpty() || stmt.startsWith("--")) {
+            if (stmt.isEmpty()) {
                 continue;
             }
             log.debug("Executing CQL: {}", stmt.lines().findFirst().orElse(""));

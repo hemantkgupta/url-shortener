@@ -1,5 +1,8 @@
 package com.urlshortener.analytics.controller;
 
+import com.urlshortener.analytics.security.AnalyticsAuthenticatedUserResolver;
+import com.urlshortener.analytics.service.LinkOwnershipService;
+import com.urlshortener.core.auth.AuthenticatedUser;
 import com.urlshortener.analytics.service.AnalyticsQueryService;
 import com.urlshortener.analytics.service.LinkManagementService;
 import com.urlshortener.core.dto.AnalyticsResponse;
@@ -8,9 +11,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -48,11 +52,17 @@ public class AnalyticsController {
 
     private final AnalyticsQueryService analyticsQueryService;
     private final LinkManagementService linkManagementService;
+    private final LinkOwnershipService linkOwnershipService;
+    private final AnalyticsAuthenticatedUserResolver authenticatedUserResolver;
 
     public AnalyticsController(AnalyticsQueryService analyticsQueryService,
-                               LinkManagementService linkManagementService) {
+                               LinkManagementService linkManagementService,
+                               LinkOwnershipService linkOwnershipService,
+                               AnalyticsAuthenticatedUserResolver authenticatedUserResolver) {
         this.analyticsQueryService = analyticsQueryService;
         this.linkManagementService = linkManagementService;
+        this.linkOwnershipService = linkOwnershipService;
+        this.authenticatedUserResolver = authenticatedUserResolver;
     }
 
     // ── GET /v1/urls/{shortKey}/analytics ────────────────────────────────────
@@ -82,7 +92,10 @@ public class AnalyticsController {
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant from,
             @RequestParam(required = false)
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant to,
-            @RequestParam(required = false, defaultValue = "day") String granularity) {
+            @RequestParam(required = false, defaultValue = "day") String granularity,
+            @AuthenticationPrincipal Jwt jwt) {
+        AuthenticatedUser currentUser = authenticatedUserResolver.require(jwt);
+        linkOwnershipService.assertOwner(shortKey, currentUser.userId());
 
         // ── Validate / default parameters ────────────────────────────────────
         Instant effectiveTo   = (to   != null) ? to   : Instant.now();
@@ -119,30 +132,18 @@ public class AnalyticsController {
      */
     @GetMapping("/urls")
     public ResponseEntity<List<ShortenResponse>> getUserLinks(
-            @RequestHeader(value = "X-User-Id", required = false) String userId,
+            @AuthenticationPrincipal Jwt jwt,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
-
-        if (userId == null || userId.isBlank()) {
-            log.warn("GET /v1/urls called without X-User-Id header");
-            return ResponseEntity.badRequest().build();
-        }
-
-        long userIdLong;
-        try {
-            userIdLong = Long.parseLong(userId.trim());
-        } catch (NumberFormatException e) {
-            log.warn("GET /v1/urls called with non-numeric X-User-Id: {}", userId);
-            return ResponseEntity.badRequest().build();
-        }
+        AuthenticatedUser currentUser = authenticatedUserResolver.require(jwt);
 
         if (page < 0 || size <= 0) {
             return ResponseEntity.badRequest().build();
         }
 
-        log.debug("getUserLinks — userId={}, page={}, size={}", userIdLong, page, size);
+        log.debug("getUserLinks — userId={}, page={}, size={}", currentUser.userId(), page, size);
 
-        List<ShortenResponse> links = linkManagementService.getUserLinks(userIdLong, page, size);
+        List<ShortenResponse> links = linkManagementService.getUserLinks(currentUser.userId(), page, size);
         return ResponseEntity.ok(links);
     }
 }

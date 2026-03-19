@@ -37,6 +37,12 @@ public class WriteServiceProperties {
     @NestedConfigurationProperty
     private Cdn cdn = new Cdn();
 
+    @NestedConfigurationProperty
+    private Security security = new Security();
+
+    @NestedConfigurationProperty
+    private RateLimit rateLimit = new RateLimit();
+
     // ── Accessors ────────────────────────────────────────────────────────────
 
     public String getKgsBaseUrl() {
@@ -85,6 +91,22 @@ public class WriteServiceProperties {
 
     public void setCdn(Cdn cdn) {
         this.cdn = cdn;
+    }
+
+    public Security getSecurity() {
+        return security;
+    }
+
+    public void setSecurity(Security security) {
+        this.security = security;
+    }
+
+    public RateLimit getRateLimit() {
+        return rateLimit;
+    }
+
+    public void setRateLimit(RateLimit rateLimit) {
+        this.rateLimit = rateLimit;
     }
 
     // ── Nested types ─────────────────────────────────────────────────────────
@@ -254,6 +276,71 @@ public class WriteServiceProperties {
 
         public void setDatacenter(String datacenter) {
             this.datacenter = datacenter;
+        }
+    }
+
+    public static class Security {
+
+        @NestedConfigurationProperty
+        private Google google = new Google();
+
+        public Google getGoogle() {
+            return google;
+        }
+
+        public void setGoogle(Google google) {
+            this.google = google;
+        }
+
+        public static class Google {
+            private String issuerUri = "https://accounts.google.com";
+            private String jwkSetUri = "https://www.googleapis.com/oauth2/v3/certs";
+            private String audience = "";
+
+            public String getIssuerUri() {
+                return issuerUri;
+            }
+
+            public void setIssuerUri(String issuerUri) {
+                this.issuerUri = issuerUri;
+            }
+
+            public String getJwkSetUri() {
+                return jwkSetUri;
+            }
+
+            public void setJwkSetUri(String jwkSetUri) {
+                this.jwkSetUri = jwkSetUri;
+            }
+
+            public String getAudience() {
+                return audience;
+            }
+
+            public void setAudience(String audience) {
+                this.audience = audience;
+            }
+        }
+    }
+
+    public static class RateLimit {
+        private int anonymousCreatesPerHour = 30;
+        private int authenticatedCreatesPerHour = 300;
+
+        public int getAnonymousCreatesPerHour() {
+            return anonymousCreatesPerHour;
+        }
+
+        public void setAnonymousCreatesPerHour(int anonymousCreatesPerHour) {
+            this.anonymousCreatesPerHour = anonymousCreatesPerHour;
+        }
+
+        public int getAuthenticatedCreatesPerHour() {
+            return authenticatedCreatesPerHour;
+        }
+
+        public void setAuthenticatedCreatesPerHour(int authenticatedCreatesPerHour) {
+            this.authenticatedCreatesPerHour = authenticatedCreatesPerHour;
         }
     }
 }

@@ -82,7 +82,7 @@ public class UrlValidationService {
             if (host == null) {
                 return false;
             }
-            return host.equalsIgnoreCase(properties.getOwnDomain());
+            return host.equalsIgnoreCase(extractOwnDomainHost());
         } catch (URISyntaxException e) {
             return false;
         }
@@ -125,10 +125,25 @@ public class UrlValidationService {
 
     private void checkCircularRedirect(URI uri) {
         String host = uri.getHost();
-        if (host != null && host.equalsIgnoreCase(properties.getOwnDomain())) {
+        if (host != null && host.equalsIgnoreCase(extractOwnDomainHost())) {
             throw new IllegalStateException(
                     "Circular redirect detected: longUrl points to this service's own domain '"
                     + properties.getOwnDomain() + "'");
+        }
+    }
+
+    private String extractOwnDomainHost() {
+        String ownDomain = properties.getOwnDomain();
+        if (ownDomain == null || ownDomain.isBlank()) {
+            return "";
+        }
+
+        try {
+            URI ownDomainUri = new URI("http://" + ownDomain);
+            String host = ownDomainUri.getHost();
+            return host != null ? host : ownDomain;
+        } catch (URISyntaxException e) {
+            return ownDomain;
         }
     }
 

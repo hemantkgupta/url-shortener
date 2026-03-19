@@ -1,3 +1,5 @@
+import java.io.File
+
 // Convention plugin applied to ALL subprojects
 plugins {
     java
@@ -39,6 +41,8 @@ tasks.register<Test>("integrationTest") {
         html.outputLocation.set(layout.buildDirectory.dir("reports/integrationTests/html"))
         junitXml.outputLocation.set(layout.buildDirectory.dir("reports/integrationTests/xml"))
     }
+
+    configureLocalDockerDesktopSupport()
 }
 
 // ── Unit tests ───────────────────────────────────────────────────────────────
@@ -72,4 +76,37 @@ tasks.withType<JavaCompile>().configureEach {
 
 tasks.withType<Test>().configureEach {
     jvmArgs("--enable-preview")
+}
+
+fun Test.configureLocalDockerDesktopSupport() {
+    val homeDir = File(System.getProperty("user.home"))
+    val dockerApiVersion = "1.44"
+    val dockerDesktopSocket = listOf(
+        File(homeDir, "Library/Containers/com.docker.docker/Data/docker.raw.sock"),
+        File(homeDir, ".docker/run/docker.sock")
+    ).firstOrNull(File::exists)
+
+    val isolatedHome = layout.buildDirectory.dir("tmp/testcontainers-home")
+    doFirst {
+        isolatedHome.get().asFile.mkdirs()
+    }
+
+    // Ignore stale ~/.testcontainers.properties from the user's real home dir.
+    environment("HOME", isolatedHome.map { it.asFile.absolutePath })
+    systemProperty("user.home", isolatedHome.map { it.asFile.absolutePath }.get())
+
+    if (dockerDesktopSocket != null) {
+        val dockerHost = "unix://${dockerDesktopSocket.absolutePath}"
+        environment("DOCKER_HOST", dockerHost)
+        environment("DOCKER_API_VERSION", dockerApiVersion)
+        environment("api.version", dockerApiVersion)
+        environment("TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE", "/var/run/docker.sock")
+        environment("TESTCONTAINERS_HOST_OVERRIDE", "localhost")
+        systemProperty("api.version", dockerApiVersion)
+        systemProperty(
+            "docker.client.strategy",
+            "org.testcontainers.dockerclient.EnvironmentAndSystemPropertyClientProviderStrategy"
+        )
+        systemProperty("docker.host", dockerHost)
+    }
 }

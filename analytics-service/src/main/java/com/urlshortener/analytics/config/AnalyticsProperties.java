@@ -28,6 +28,9 @@ public class AnalyticsProperties {
     @NestedConfigurationProperty
     private Cassandra cassandra = new Cassandra();
 
+    @NestedConfigurationProperty
+    private Security security = new Security();
+
     // ── Accessors ────────────────────────────────────────────────────────────
 
     public Kafka getKafka() {
@@ -68,6 +71,14 @@ public class AnalyticsProperties {
 
     public void setCassandra(Cassandra cassandra) {
         this.cassandra = cassandra;
+    }
+
+    public Security getSecurity() {
+        return security;
+    }
+
+    public void setSecurity(Security security) {
+        this.security = security;
     }
 
     // ── Nested: Kafka ─────────────────────────────────────────────────────────
@@ -255,6 +266,50 @@ public class AnalyticsProperties {
 
         public void setDatacenter(String datacenter) {
             this.datacenter = datacenter;
+        }
+    }
+
+    public static class Security {
+
+        @NestedConfigurationProperty
+        private Google google = new Google();
+
+        public Google getGoogle() {
+            return google;
+        }
+
+        public void setGoogle(Google google) {
+            this.google = google;
+        }
+
+        public static class Google {
+            private String issuerUri = "https://accounts.google.com";
+            private String jwkSetUri = "https://www.googleapis.com/oauth2/v3/certs";
+            private String audience = "";
+
+            public String getIssuerUri() {
+                return issuerUri;
+            }
+
+            public void setIssuerUri(String issuerUri) {
+                this.issuerUri = issuerUri;
+            }
+
+            public String getJwkSetUri() {
+                return jwkSetUri;
+            }
+
+            public void setJwkSetUri(String jwkSetUri) {
+                this.jwkSetUri = jwkSetUri;
+            }
+
+            public String getAudience() {
+                return audience;
+            }
+
+            public void setAudience(String audience) {
+                this.audience = audience;
+            }
         }
     }
 }

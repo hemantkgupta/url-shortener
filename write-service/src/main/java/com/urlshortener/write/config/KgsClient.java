@@ -2,7 +2,6 @@ package com.urlshortener.write.config;
 
 import com.urlshortener.core.util.Base62Encoder;
 import com.urlshortener.write.exception.KeyGenerationException;
-import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -20,8 +19,9 @@ import java.util.concurrent.locks.ReentrantLock;
  * when the block is exhausted a new block is fetched under a {@link ReentrantLock}
  * (double-checked locking) to avoid a thundering herd of concurrent KGS calls.
  *
- * <p>The raw counter value is encoded to a Base62 string before being returned
- * to callers, producing the compact alphanumeric short keys used in URLs.
+ * <p>The raw counter value is mapped into the public 8-character Base62 range
+ * before being returned to callers, producing compact public keys that do not
+ * expose the monotonic counter directly.
  */
 @Component
 public class KgsClient {
@@ -35,7 +35,7 @@ public class KgsClient {
 
     // Mutable block state — protected by blockLock
     private final AtomicLong counter  = new AtomicLong(0);
-    private volatile long    blockEnd = -1L;   // -1 signals "no block yet"
+    private volatile long    blockEnd = 0L;    // exclusive upper bound
 
     private final ReentrantLock blockLock = new ReentrantLock();
 
@@ -47,7 +47,7 @@ public class KgsClient {
     }
 
     /**
-     * Returns the next available short key as a Base62-encoded string.
+     * Returns the next available short key as a scattered Base62 string.
      *
      * <p>This method is thread-safe.  Concurrent callers may briefly contend on
      * {@link #blockLock} when a block refresh is needed, but only one thread will
@@ -57,10 +57,10 @@ public class KgsClient {
      */
     public String nextKey() {
         long value = counter.getAndIncrement();
-        if (value > blockEnd) {
+        if (value >= blockEnd) {
             value = refreshBlockAndGetFirst();
         }
-        return Base62Encoder.encode(value);
+        return Base62Encoder.toShortKey(value);
     }
 
     // ── Private helpers ───────────────────────────────────────────────────────
@@ -69,9 +69,9 @@ public class KgsClient {
         blockLock.lock();
         try {
             // Double-check: another thread may have already refreshed while we waited
-            long current = counter.get();
-            if (current <= blockEnd) {
-                return counter.getAndIncrement();
+            long current = counter.getAndIncrement();
+            if (current < blockEnd) {
+                return current;
             }
 
             log.info("Key block exhausted — fetching new block from KGS at {}", properties.getKgsBaseUrl());

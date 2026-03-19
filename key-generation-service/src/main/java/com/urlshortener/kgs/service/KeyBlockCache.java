@@ -21,9 +21,9 @@ import com.urlshortener.core.util.Base62Encoder;
  *       from {@link BlockAllocator} while holding a non-reentrant lock so that
  *       only one thread triggers the remote allocation.
  *   <li>Before encoding, the raw counter is passed through
- *       {@link Base62Encoder#bitReverse(long, int)} with 40 bits to scatter
- *       key values across the B-tree / LSM key space, eliminating write
- *       hot-spots.
+ *       {@link Base62Encoder#toShortKey(long)}, which maps it into the public
+ *       8-character Base62 range without exposing the monotonic sequence
+ *       directly.
  * </ul>
  *
  * <h2>Thread safety</h2>
@@ -37,19 +37,13 @@ public class KeyBlockCache {
 
     private static final Logger log = LoggerFactory.getLogger(KeyBlockCache.class);
 
-    /**
-     * Number of bits used for bit-reversal scattering.  40 bits provides a
-     * key space of ~1.1 trillion, sufficient for a single region.
-     */
-    private static final int BIT_REVERSE_BITS = 40;
-
     private final BlockAllocator blockAllocator;
 
     /** Points to the next counter value to hand out. */
-    private final AtomicLong counter = new AtomicLong(Long.MAX_VALUE); // forces block fetch on first call
+    private final AtomicLong counter = new AtomicLong(0L);
 
     /** Exclusive upper bound of the current block (counter must stay < blockEnd). */
-    private volatile long blockEnd = Long.MAX_VALUE;
+    private volatile long blockEnd = 0L;
 
     /** Guards the block-refresh critical section. */
     private final ReentrantLock refreshLock = new ReentrantLock();
@@ -66,15 +60,14 @@ public class KeyBlockCache {
     /**
      * Returns the next unique short key.
      *
-     * <p>The raw counter value is bit-reversed before Base-62 encoding to
-     * prevent sequential keys from clustering at one end of the storage index.
+     * <p>The raw counter value is converted into the public 8-character Base62
+     * range via {@link Base62Encoder#toShortKey(long)}.
      *
-     * @return a 7-character Base-62 encoded key string
+     * @return an 8-character Base-62 encoded key string
      */
     public String nextKey() {
         long raw = nextCounter();
-        long scattered = Base62Encoder.bitReverse(raw, BIT_REVERSE_BITS);
-        return Base62Encoder.encode(scattered, 7);
+        return Base62Encoder.toShortKey(raw);
     }
 
     /**

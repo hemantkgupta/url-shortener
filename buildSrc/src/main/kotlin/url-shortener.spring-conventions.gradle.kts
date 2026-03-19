@@ -1,3 +1,5 @@
+import org.gradle.api.artifacts.VersionCatalogsExtension
+
 // Convention plugin applied to Spring Boot service subprojects
 plugins {
     id("url-shortener.java-conventions")
@@ -6,10 +8,14 @@ plugins {
     id("com.google.cloud.tools.jib")
 }
 
+val libs = extensions.getByType<VersionCatalogsExtension>().named("libs")
+val testcontainersVersion = libs.findVersion("testcontainers").get().requiredVersion
+
 // Let root BOM manage Spring Boot versions for all dependencies
 dependencyManagement {
     imports {
         mavenBom(org.springframework.boot.gradle.plugin.SpringBootPlugin.BOM_COORDINATES)
+        mavenBom("org.testcontainers:testcontainers-bom:$testcontainersVersion")
     }
 }
 

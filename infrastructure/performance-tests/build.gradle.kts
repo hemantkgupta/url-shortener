@@ -22,7 +22,6 @@ gatling {
         "-DbaseUrl=$baseUrl",
         "-DwriteUrl=$writeUrl"
     )
-    logLevel = "WARN"
 }
 
 // Convenient named tasks per simulation

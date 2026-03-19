@@ -6,7 +6,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-import org.redisson.api.RBatch;
+import org.redisson.api.RBloomFilter;
 import org.redisson.api.RedissonClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -212,24 +212,22 @@ public class BlockAllocator {
 
     /**
      * Asynchronously registers every counter value in the allocated block into
-     * the RedisBloom filter using a pipelined {@link RBatch}.
+     * the RedisBloom filter.
      *
-     * <p>Failures are logged but never propagate to the caller; RedisBloom is
-     * used for best-effort deduplication, not hard enforcement.
+     * <p>{@link RBloomFilter} operations are not pipelineable via {@code RBatch}
+     * — each {@code add()} is a single round-trip, but they run inside a
+     * virtual-thread-backed {@link CompletableFuture} so they never block
+     * a platform thread.  Failures are logged but never propagated to the
+     * caller; RedisBloom is used for best-effort deduplication only.
      */
     private void registerInBloomAsync(KeyBlock block) {
         CompletableFuture.runAsync(() -> {
             try {
-                // Redisson RBatch pipelines all commands in a single round-trip
-                RBatch batch = redisson.createBatch();
-                var bf = batch.getBloomFilter(BLOOM_FILTER_KEY);
-
+                RBloomFilter<Long> bf = redisson.getBloomFilter(BLOOM_FILTER_KEY);
                 for (long counter = block.start(); counter < block.end(); counter++) {
                     // Store the raw counter, not the encoded key, to keep BF compact
-                    bf.addAsync(counter);
+                    bf.add(counter);
                 }
-
-                batch.execute();
                 log.debug("Registered {} keys in RedisBloom for block {}", block.size(), block);
             } catch (Exception e) {
                 log.warn("RedisBloom registration failed for block {} (non-fatal): {}",

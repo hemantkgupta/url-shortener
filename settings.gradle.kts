@@ -26,9 +26,6 @@ dependencyResolutionManagement {
     repositories {
         mavenCentral()
     }
-    versionCatalogs {
-        create("libs") {
-            from(files("gradle/libs.versions.toml"))
-        }
-    }
+    // gradle/libs.versions.toml is auto-discovered by Gradle 8 as the "libs" catalog —
+    // no explicit versionCatalogs block needed; adding one would load it twice.
 }

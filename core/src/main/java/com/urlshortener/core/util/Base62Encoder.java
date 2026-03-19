@@ -16,13 +16,12 @@ package com.urlshortener.core.util;
  * values up to 62^8 − 1 ≈ 218 trillion — more than sufficient for a
  * hyperscale URL shortener.
  *
- * <h2>Hotspot prevention</h2>
- * {@link #bitReverse(long, int)} reverses the lowest {@code bits} bits of a
- * counter value before encoding.  When a B-tree (or LSM-tree) index is written
- * with a monotonically increasing counter, all inserts cluster on the trailing
- * pages, creating a write hotspot.  Reversing the bit pattern distributes
- * writes uniformly across the full key space while remaining perfectly
- * reversible.
+ * <h2>Generated public keys</h2>
+ * {@link #toShortKey(long)} maps a raw monotonic counter into the public
+ * 8-character Base62 range {@code [10000000, ZZZZZZZZ]} via a deterministic
+ * permutation.  This keeps all generated keys a fixed length, avoids leading
+ * zero padding, and prevents the public key from exposing the raw counter
+ * directly.
  *
  * <h2>Thread safety</h2>
  * All methods are stateless and therefore inherently thread-safe.
@@ -47,6 +46,33 @@ public final class Base62Encoder {
 
     /** Pre-computed reverse lookup: ASCII code → Base62 digit value, or -1. */
     private static final int[] CHAR_TO_VALUE = buildReverseTable();
+
+    /** Smallest value that encodes to exactly 8 Base62 characters: {@code 62^7}. */
+    private static final long SHORT_KEY_FLOOR = minFixedLengthValue(KEY_LENGTH);
+
+    /**
+     * Number of usable generated-key values in the public 8-character range
+     * {@code [10000000, ZZZZZZZZ]}.
+     */
+    private static final long SHORT_KEY_SPACE = maxEncodableValue() - SHORT_KEY_FLOOR + 1;
+
+    /**
+     * Multiplier for the public-key permutation.
+     *
+     * <p>Must be coprime to {@link #SHORT_KEY_SPACE} so the mapping remains a
+     * bijection over the entire 8-character public range.
+     */
+    private static final long SHORT_KEY_MULTIPLIER = 40_009L;
+
+    /** Additive shift for the public-key permutation. */
+    private static final long SHORT_KEY_OFFSET = 13_579_246_801L;
+
+    static {
+        if (gcd(SHORT_KEY_MULTIPLIER, SHORT_KEY_SPACE) != 1L) {
+            throw new ExceptionInInitializerError(
+                    "SHORT_KEY_MULTIPLIER must be coprime to SHORT_KEY_SPACE");
+        }
+    }
 
     // ── Private constructor — static utility class ───────────────────────────
 
@@ -209,18 +235,39 @@ public final class Base62Encoder {
     }
 
     /**
-     * Convenience method: applies {@link #bitReverse(long, int)} with 40 bits
-     * and then {@link #encode(long, int)} with length 7.
+     * Converts a raw monotonic counter into a public 8-character short key.
      *
-     * <p>This is the standard pipeline used by the key-generation-service for
-     * generating 7-character short keys from a Snowflake-style counter.
+     * <p>The mapping is a deterministic affine permutation over the exact
+     * 8-character Base62 range {@code [10000000, ZZZZZZZZ]}.  That gives three
+     * properties that the generated public URL key needs:
+     * <ul>
+     *   <li>exactly 8 Base62 characters, every time</li>
+     *   <li>no leading-zero padding such as {@code 00000NPc}</li>
+     *   <li>no obvious one-step relationship between adjacent raw counters</li>
+     * </ul>
+     *
+     * <p>This permutation is intentionally lightweight and deterministic for
+     * distributed services.  It is not a cryptographic construction.
      *
      * @param counter raw monotonic counter value
-     * @return 7-character Base62 short key
+     * @return exactly 8 Base62 characters in the public key range
+     * @throws IllegalArgumentException if {@code counter} is negative or exceeds
+     *                                  the supported 8-character public key space
      */
     public static String toShortKey(long counter) {
-        long scattered = bitReverse(counter, 40);
-        return encode(scattered, 7);
+        if (counter < 0) {
+            throw new IllegalArgumentException(
+                    "counter must be non-negative, got: " + counter);
+        }
+        if (counter >= SHORT_KEY_SPACE) {
+            throw new IllegalArgumentException(
+                    "counter value " + counter
+                    + " exceeds the supported 8-character short-key space (max="
+                    + (SHORT_KEY_SPACE - 1) + ")");
+        }
+
+        long permuted = (counter * SHORT_KEY_MULTIPLIER + SHORT_KEY_OFFSET) % SHORT_KEY_SPACE;
+        return encode(SHORT_KEY_FLOOR + permuted);
     }
 
     // ── Package-private helpers ───────────────────────────────────────────────
@@ -237,7 +284,30 @@ public final class Base62Encoder {
         return max - 1;
     }
 
+    static long minFixedLengthValue(int length) {
+        if (length < 1) {
+            throw new IllegalArgumentException("length must be >= 1, got: " + length);
+        }
+
+        long value = 1L;
+        for (int i = 1; i < length; i++) {
+            value *= BASE;
+        }
+        return value;
+    }
+
     // ── Private helpers ───────────────────────────────────────────────────────
+
+    private static long gcd(long a, long b) {
+        long x = Math.abs(a);
+        long y = Math.abs(b);
+        while (y != 0L) {
+            long next = x % y;
+            x = y;
+            y = next;
+        }
+        return x;
+    }
 
     private static int[] buildReverseTable() {
         // ASCII printable characters fit within 128; Base62 uses only [0-9A-Za-z].

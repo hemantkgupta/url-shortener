@@ -1,5 +1,5 @@
 server:
-  port: 8080
+  port: ${URL_SHORTENER_REDIRECT_SERVICE_PORT:8080}
 
 spring:
   application:

@@ -7,6 +7,8 @@ dependencies {
 
     // Spring web
     implementation(libs.bundles.spring.web.base)
+    implementation(libs.spring.boot.starter.security)
+    implementation(libs.spring.boot.starter.oauth2.resource.server)
 
     // ScyllaDB / Cassandra driver
     implementation(libs.bundles.cassandra)
@@ -32,6 +34,7 @@ dependencies {
     testImplementation(libs.bundles.testing.unit)
     testImplementation(libs.wiremock)                       // stub KGS and Safe Browsing
     testImplementation(libs.spring.kafka.test)
+    testImplementation(libs.spring.security.test)
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 
     // ── Integration tests ─────────────────────────────────────────────────────
@@ -43,6 +46,7 @@ dependencies {
     integrationTestImplementation(libs.testcontainers.kafka)
     integrationTestImplementation(libs.spring.kafka.test)
     integrationTestImplementation(libs.spring.boot.starter.test)
+    integrationTestImplementation(libs.spring.security.test)
 }
 
 jib {

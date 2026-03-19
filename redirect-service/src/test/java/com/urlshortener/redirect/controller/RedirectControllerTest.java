@@ -5,10 +5,10 @@ import com.urlshortener.redirect.service.RedirectResult;
 import com.urlshortener.redirect.service.RedirectService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.context.annotation.Import;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static org.hamcrest.Matchers.containsString;
@@ -34,7 +34,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * </ul>
  */
 @WebMvcTest(RedirectController.class)
-@Import(RedirectServiceProperties.class)
 class RedirectControllerTest {
 
     private static final String SHORT_KEY = "aB3xY9z";
@@ -45,6 +44,16 @@ class RedirectControllerTest {
 
     @MockBean
     private RedirectService redirectService;
+
+    @MockBean
+    private RedirectServiceProperties properties;
+
+    @BeforeEach
+    void setUp() {
+        RedirectServiceProperties.Cdn cdn = new RedirectServiceProperties.Cdn();
+        cdn.setCacheMaxAgeSeconds(3600L);
+        when(properties.getCdn()).thenReturn(cdn);
+    }
 
     // ── 302 Found — CDN cache headers ────────────────────────────────────────
 

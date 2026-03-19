@@ -115,7 +115,7 @@ class KeyBlockCacheTest {
     }
 
     @Test
-    @DisplayName("nextKey: returns non-null, non-empty Base62 keys of expected length")
+    @DisplayName("nextKey: returns exact 8-character Base62 keys")
     void nextKey_returnsValidBase62Key() {
         KeyBlock block = new KeyBlock(0L, 1_000L, REGION);
         when(blockAllocator.allocateBlock()).thenReturn(block);
@@ -125,12 +125,12 @@ class KeyBlockCacheTest {
         assertThat(key)
                 .isNotNull()
                 .isNotEmpty()
-                .matches("[0-9A-Za-z]+")
-                .hasSizeGreaterThanOrEqualTo(1);
+                .matches("[0-9A-Za-z]{8}")
+                .doesNotStartWith("0");
     }
 
     @Test
-    @DisplayName("nextKey: successive keys are all different (bit-reversal scattering works)")
+    @DisplayName("nextKey: successive keys are all different across adjacent counters")
     void nextKey_successiveKeys_areDistinct() {
         KeyBlock block = new KeyBlock(0L, 1_000L, REGION);
         when(blockAllocator.allocateBlock()).thenReturn(block);

@@ -3,7 +3,7 @@
 # stop-all.sh — Stop all Docker Compose infrastructure and Spring Boot services
 # =============================================================================
 # Stops:
-#   1. Spring Boot services (via PID files or port-based discovery)
+#   1. Local application services (Spring Boot services + frontend)
 #   2. Docker Compose stack (infrastructure/compose/docker-compose.dev.yml)
 #
 # Usage:
@@ -39,6 +39,21 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 COMPOSE_FILE="${PROJECT_ROOT}/infrastructure/compose/docker-compose.dev.yml"
 LOGS_DIR="${PROJECT_ROOT}/logs"
+LOCAL_ENV_FILE="${HOME}/.url-shortener-local-dev"
+
+if [[ -f "${LOCAL_ENV_FILE}" ]]; then
+    log "Loading local environment from ${LOCAL_ENV_FILE}"
+    set -a
+    # shellcheck disable=SC1090
+    source "${LOCAL_ENV_FILE}"
+    set +a
+fi
+
+export URL_SHORTENER_KEY_GENERATION_SERVICE_PORT="${URL_SHORTENER_KEY_GENERATION_SERVICE_PORT:-18081}"
+export URL_SHORTENER_WRITE_SERVICE_PORT="${URL_SHORTENER_WRITE_SERVICE_PORT:-18082}"
+export URL_SHORTENER_REDIRECT_SERVICE_PORT="${URL_SHORTENER_REDIRECT_SERVICE_PORT:-18080}"
+export URL_SHORTENER_ANALYTICS_SERVICE_PORT="${URL_SHORTENER_ANALYTICS_SERVICE_PORT:-18083}"
+export URL_SHORTENER_FRONTEND_PORT="${URL_SHORTENER_FRONTEND_PORT:-13000}"
 
 # ---------------------------------------------------------------------------
 # Parse flags
@@ -65,15 +80,60 @@ for arg in "$@"; do
 done
 
 # ---------------------------------------------------------------------------
-# Stop Spring Boot services
+# Stop local application services
 # ---------------------------------------------------------------------------
-# Service ports used to discover processes if PID file is stale/missing
-declare -A SERVICE_PORT=(
-    ["key-generation-service"]="8081"
-    ["write-service"]="8082"
-    ["redirect-service"]="8080"
-    ["analytics-service"]="8083"
+# Compatible with macOS' default Bash 3.2, so avoid associative arrays.
+declare -a SERVICE_NAMES=(
+    "key-generation-service"
+    "write-service"
+    "redirect-service"
+    "analytics-service"
+    "frontend"
 )
+
+service_port() {
+    case "$1" in
+        key-generation-service) echo "${URL_SHORTENER_KEY_GENERATION_SERVICE_PORT}" ;;
+        write-service) echo "${URL_SHORTENER_WRITE_SERVICE_PORT}" ;;
+        redirect-service) echo "${URL_SHORTENER_REDIRECT_SERVICE_PORT}" ;;
+        analytics-service) echo "${URL_SHORTENER_ANALYTICS_SERVICE_PORT}" ;;
+        frontend) echo "${URL_SHORTENER_FRONTEND_PORT}" ;;
+        *)
+            error "Unknown service: $1"
+            exit 1
+            ;;
+    esac
+}
+
+process_command() {
+    ps -p "$1" -o command= 2>/dev/null || true
+}
+
+is_expected_service_process() {
+    local name="$1"
+    local pid="$2"
+    local cmd
+
+    cmd="$(process_command "${pid}")"
+    if [[ -z "${cmd}" ]]; then
+        return 1
+    fi
+
+    case "${name}" in
+        frontend)
+            [[ "${cmd}" == *node* || "${cmd}" == *npm* || "${cmd}" == *vite* ]]
+            ;;
+        key-generation-service|write-service|redirect-service|analytics-service)
+            if [[ "${cmd}" == *com.docker* || "${cmd}" == *vpnkit* || "${cmd}" == *containerd* || "${cmd}" == *docker* ]]; then
+                return 1
+            fi
+            [[ "${cmd}" == *java* || "${cmd}" == *gradle* || "${cmd}" == *Gradle* ]]
+            ;;
+        *)
+            return 1
+            ;;
+    esac
+}
 
 kill_process() {
     local pid=$1
@@ -97,26 +157,36 @@ kill_process() {
     fi
 }
 
-stop_spring_services() {
-    header "Stopping Spring Boot services"
+stop_local_services() {
+    header "Stopping local application services"
 
-    for name in "${!SERVICE_PORT[@]}"; do
+    for name in "${SERVICE_NAMES[@]}"; do
         local pid_file="${LOGS_DIR}/${name}.pid"
-        local port="${SERVICE_PORT[$name]}"
+        local port
+
+        port="$(service_port "${name}")"
 
         # Try PID file first
         if [[ -f "${pid_file}" ]]; then
             local pid
             pid=$(cat "${pid_file}")
-            kill_process "${pid}" "${name}"
+            if is_expected_service_process "${name}" "${pid}"; then
+                kill_process "${pid}" "${name}"
+            else
+                warn "PID file for ${name} points to PID ${pid}, but it does not look like this local service. Skipping kill."
+            fi
             rm -f "${pid_file}"
         else
             # Fall back to finding process by port
             local port_pid
             port_pid=$(lsof -iTCP:"${port}" -sTCP:LISTEN -P -n -t 2>/dev/null || true)
             if [[ -n "${port_pid}" ]]; then
-                warn "No PID file for ${name} — found PID ${port_pid} on port ${port}"
-                kill_process "${port_pid}" "${name}"
+                if is_expected_service_process "${name}" "${port_pid}"; then
+                    warn "No PID file for ${name} — found PID ${port_pid} on port ${port}"
+                    kill_process "${port_pid}" "${name}"
+                else
+                    warn "Port ${port} is in use by PID ${port_pid}, but it does not look like the local ${name}. Skipping kill."
+                fi
             else
                 log "${name} does not appear to be running on port ${port}"
             fi
@@ -128,7 +198,7 @@ stop_spring_services() {
     if [[ -f "${PROJECT_ROOT}/gradlew" ]]; then
         (cd "${PROJECT_ROOT}" && ./gradlew --stop 2>/dev/null) || true
     fi
-    success "Spring Boot services stopped"
+    success "Local application services stopped"
 }
 
 # ---------------------------------------------------------------------------
@@ -161,7 +231,7 @@ main() {
     echo ""
 
     if ${STOP_SERVICES}; then
-        stop_spring_services
+        stop_local_services
     fi
 
     if ${STOP_INFRA}; then

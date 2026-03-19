@@ -9,13 +9,17 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.boot.test.web.server.LocalServerPort;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.RequestEntity;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.testcontainers.containers.CassandraContainer;
@@ -25,12 +29,14 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
 
 import java.net.URI;
+import java.time.Instant;
 import java.util.Map;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.when;
 
 /**
  * Full-stack integration test for the Write Service.
@@ -49,6 +55,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @Testcontainers
 class WriteServiceIntegrationTest {
+
+    private static final String OWNER_TOKEN = "integration-owner-token";
+    private static final String OWNER_SUBJECT = "google-user-123";
 
     // ── Containers ────────────────────────────────────────────────────────────
 
@@ -75,6 +84,9 @@ class WriteServiceIntegrationTest {
 
     @Autowired
     TestRestTemplate restTemplate;
+
+    @MockBean
+    JwtDecoder jwtDecoder;
 
     // ── Lifecycle ─────────────────────────────────────────────────────────────
 
@@ -143,7 +155,11 @@ class WriteServiceIntegrationTest {
 
         Map<?, ?> body = response.getBody();
         assertThat(body).isNotNull();
-        assertThat(body.get("shortKey")).isNotNull().asString().isNotBlank();
+        assertThat(body.get("shortKey"))
+                .isNotNull()
+                .asString()
+                .matches("[0-9A-Za-z]{8}")
+                .doesNotStartWith("0");
         assertThat(body.get("shortUrl")).isNotNull().asString().contains((String) body.get("shortKey"));
         assertThat(body.get("longUrl")).isNotNull();
         assertThat(body.get("createdAt")).isNotNull();
@@ -248,27 +264,32 @@ class WriteServiceIntegrationTest {
     }
 
     @Test
-    @DisplayName("DELETE /v1/urls/{shortKey} returns 204 No Content")
+    @DisplayName("DELETE /v1/urls/{shortKey} returns 204 No Content for the owning user")
     void deleteShortUrlReturns204() {
-        // First create a URL
+        when(jwtDecoder.decode(OWNER_TOKEN)).thenReturn(ownerJwt());
+
+        // First create a URL as the authenticated owner
         String createBody = """
                 {
                     "longUrl": "https://example.com/to-be-deleted"
                 }
                 """;
 
-        ResponseEntity<Map> created = restTemplate.exchange(
+        ResponseEntity<Map<String, Object>> created = restTemplate.exchange(
                 RequestEntity.post(URI.create("/v1/urls"))
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + OWNER_TOKEN)
                         .contentType(MediaType.APPLICATION_JSON)
                         .body(createBody),
-                Map.class);
+                (Class<Map<String, Object>>) (Class<?>) Map.class);
 
         assertThat(created.getStatusCode()).isEqualTo(HttpStatus.CREATED);
         String shortKey = (String) created.getBody().get("shortKey");
 
-        // Now delete it
+        // Now delete it with the same identity
         ResponseEntity<Void> deleted = restTemplate.exchange(
-                RequestEntity.delete(URI.create("/v1/urls/" + shortKey)).build(),
+                RequestEntity.delete(URI.create("/v1/urls/" + shortKey))
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + OWNER_TOKEN)
+                        .build(),
                 Void.class);
 
         assertThat(deleted.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
@@ -284,7 +305,7 @@ class WriteServiceIntegrationTest {
                     "blockSize": %d,
                     "region": "us-east-1"
                 }
-                """, startKey, endKey, (int)(endKey - startKey + 1));
+                """, startKey, endKey, (endKey - startKey));
 
         wireMock.stubFor(
                 post(urlEqualTo("/internal/keys/next-block"))
@@ -292,5 +313,17 @@ class WriteServiceIntegrationTest {
                                 .withStatus(200)
                                 .withHeader("Content-Type", "application/json")
                                 .withBody(responseBody)));
+    }
+
+    private static Jwt ownerJwt() {
+        return Jwt.withTokenValue(OWNER_TOKEN)
+                .header("alg", "RS256")
+                .claim("sub", OWNER_SUBJECT)
+                .claim("email", "owner@example.com")
+                .claim("name", "Integration Owner")
+                .claim("aud", "integration-test-client")
+                .issuedAt(Instant.now())
+                .expiresAt(Instant.now().plusSeconds(3600))
+                .build();
     }
 }
