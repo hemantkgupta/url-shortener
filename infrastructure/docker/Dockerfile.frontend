@@ -13,6 +13,11 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
+ARG URL_SHORTENER_FRONTEND_BASE_PATH=/
+ENV URL_SHORTENER_FRONTEND_BASE_PATH=${URL_SHORTENER_FRONTEND_BASE_PATH}
+ARG URL_SHORTENER_AUTH_GOOGLE_CLIENT_ID=
+ENV URL_SHORTENER_AUTH_GOOGLE_CLIENT_ID=${URL_SHORTENER_AUTH_GOOGLE_CLIENT_ID}
+
 # Install dependencies first (layer-cached unless package*.json changes)
 COPY frontend/package*.json ./
 RUN npm ci --prefer-offline

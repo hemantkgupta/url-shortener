@@ -1,0 +1,297 @@
+services:
+  scylladb:
+    image: scylladb/scylla:6.1
+    restart: unless-stopped
+    command: >
+      --smp 2
+      --memory 4096M
+      --overprovisioned 1
+      --developer-mode 1
+      --broadcast-address scylladb
+      --listen-address 0.0.0.0
+      --broadcast-rpc-address scylladb
+    volumes:
+      - type: bind
+        source: ${URL_SHORTENER_DATA_ROOT}/scylla
+        target: /var/lib/scylla
+    networks:
+      - url-shortener-net
+    healthcheck:
+      test: ["CMD-SHELL", "cqlsh --execute \"SELECT now() FROM system.local\" 2>/dev/null || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 60s
+    environment:
+      - SCYLLA_JMX_REMOTE_PORT=7199
+
+  redis:
+    image: redis/redis-stack:latest
+    restart: unless-stopped
+    volumes:
+      - type: bind
+        source: ${URL_SHORTENER_DATA_ROOT}/redis
+        target: /data
+    networks:
+      - url-shortener-net
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+    environment:
+      - REDIS_ARGS=--save 60 1 --loglevel warning
+
+  etcd:
+    image: quay.io/coreos/etcd:v3.5.18
+    restart: unless-stopped
+    volumes:
+      - type: bind
+        source: ${URL_SHORTENER_DATA_ROOT}/etcd
+        target: /bitnami/etcd/data
+    networks:
+      - url-shortener-net
+    environment:
+      - ETCD_NAME=etcd0
+      - ETCD_ADVERTISE_CLIENT_URLS=http://etcd:2379
+      - ETCD_LISTEN_CLIENT_URLS=http://0.0.0.0:2379
+      - ETCD_INITIAL_ADVERTISE_PEER_URLS=http://etcd:2380
+      - ETCD_LISTEN_PEER_URLS=http://0.0.0.0:2380
+      - ETCD_INITIAL_CLUSTER=etcd0=http://etcd:2380
+      - ETCD_INITIAL_CLUSTER_STATE=new
+      - ETCD_INITIAL_CLUSTER_TOKEN=url-shortener-etcd-cluster
+      - ETCD_DATA_DIR=/bitnami/etcd/data
+    healthcheck:
+      test: ["CMD", "etcdctl", "endpoint", "health", "--endpoints=http://localhost:2379"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
+  kafka:
+    image: apache/kafka:3.8.0
+    restart: unless-stopped
+    volumes:
+      - type: bind
+        source: ${URL_SHORTENER_DATA_ROOT}/kafka
+        target: /var/lib/kafka/data
+    networks:
+      - url-shortener-net
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_LOG_DIRS: /var/lib/kafka/data
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_DEFAULT_REPLICATION_FACTOR: 1
+      KAFKA_MIN_INSYNC_REPLICAS: 1
+      KAFKA_LOG_RETENTION_HOURS: 24
+      KAFKA_LOG_SEGMENT_BYTES: 536870912
+      KAFKA_LOG_RETENTION_CHECK_INTERVAL_MS: 300000
+      CLUSTER_ID: "MkU3OEVBNTcwNTJENDM2Qg"
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --list 2>/dev/null || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
+
+  clickhouse:
+    image: clickhouse/clickhouse-server:24.8
+    restart: unless-stopped
+    volumes:
+      - type: bind
+        source: ${URL_SHORTENER_DATA_ROOT}/clickhouse
+        target: /var/lib/clickhouse
+      - type: bind
+        source: ${URL_SHORTENER_DATA_ROOT}/clickhouse-logs
+        target: /var/log/clickhouse-server
+    networks:
+      - url-shortener-net
+    environment:
+      CLICKHOUSE_DB: analytics
+      CLICKHOUSE_USER: default
+      CLICKHOUSE_PASSWORD: ""
+      CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: 1
+    healthcheck:
+      test: ["CMD-SHELL", "clickhouse-client --query 'SELECT 1' 2>/dev/null || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    ulimits:
+      nofile:
+        soft: 262144
+        hard: 262144
+
+  key-generation-service:
+    build:
+      context: ../..
+      dockerfile: infrastructure/docker/Dockerfile.kgs
+    restart: unless-stopped
+    environment:
+      URL_SHORTENER_KEY_GENERATION_SERVICE_PORT: 8081
+      ETCD_ENDPOINTS: http://etcd:2379
+      REDIS_ADDRESS: redis://redis:6379
+      KGS_REGION: onebox
+      JAVA_TOOL_OPTIONS: -Xms256m -Xmx768m
+    depends_on:
+      etcd:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - url-shortener-net
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8081/actuator/health >/dev/null || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 25s
+
+  write-service:
+    build:
+      context: ../..
+      dockerfile: infrastructure/docker/Dockerfile.write
+    restart: unless-stopped
+    environment:
+      URL_SHORTENER_WRITE_SERVICE_PORT: 8082
+      URL_SHORTENER_AUTH_GOOGLE_CLIENT_ID: ${URL_SHORTENER_AUTH_GOOGLE_CLIENT_ID}
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      CASSANDRA_CONTACT_POINTS: scylladb
+      CASSANDRA_PORT: 9042
+      CASSANDRA_KEYSPACE: url_shortener
+      CASSANDRA_DATACENTER: datacenter1
+      KGS_BASE_URL: http://key-generation-service:8081
+      OWN_DOMAIN: ${URL_SHORTENER_PUBLIC_DOMAIN}
+      JAVA_TOOL_OPTIONS: -Xms256m -Xmx1024m
+    depends_on:
+      scylladb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      key-generation-service:
+        condition: service_healthy
+    networks:
+      - url-shortener-net
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8082/actuator/health >/dev/null || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 35s
+
+  redirect-service:
+    build:
+      context: ../..
+      dockerfile: infrastructure/docker/Dockerfile.redirect
+    restart: unless-stopped
+    environment:
+      URL_SHORTENER_REDIRECT_SERVICE_PORT: 8080
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      CASSANDRA_CONTACT_POINTS: scylladb
+      CASSANDRA_PORT: 9042
+      CASSANDRA_KEYSPACE: url_shortener
+      CASSANDRA_DATACENTER: datacenter1
+      OWN_DOMAIN: ${URL_SHORTENER_PUBLIC_DOMAIN}
+      IP_DAILY_SALT: ${URL_SHORTENER_IP_DAILY_SALT:-change-me}
+      JAVA_TOOL_OPTIONS: -Xms256m -Xmx1024m
+    depends_on:
+      scylladb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      write-service:
+        condition: service_healthy
+    networks:
+      - url-shortener-net
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8080/actuator/health >/dev/null || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 35s
+
+  analytics-service:
+    build:
+      context: ../..
+      dockerfile: infrastructure/docker/Dockerfile.analytics
+    restart: unless-stopped
+    environment:
+      URL_SHORTENER_ANALYTICS_SERVICE_PORT: 8083
+      URL_SHORTENER_AUTH_GOOGLE_CLIENT_ID: ${URL_SHORTENER_AUTH_GOOGLE_CLIENT_ID}
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      CLICKHOUSE_URL: jdbc:clickhouse://clickhouse:8123/analytics
+      CLICKHOUSE_USER: default
+      CLICKHOUSE_PASSWORD: ""
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      SCYLLA_CONTACT_POINTS: scylladb
+      SCYLLA_DATACENTER: datacenter1
+      JAVA_TOOL_OPTIONS: -Xms512m -Xmx1536m
+    depends_on:
+      scylladb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      clickhouse:
+        condition: service_healthy
+      write-service:
+        condition: service_healthy
+    networks:
+      - url-shortener-net
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8083/actuator/health >/dev/null || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 15
+      start_period: 50s
+
+  gateway:
+    build:
+      context: ../..
+      dockerfile: infrastructure/docker/Dockerfile.frontend
+      args:
+        URL_SHORTENER_FRONTEND_BASE_PATH: /app
+        URL_SHORTENER_AUTH_GOOGLE_CLIENT_ID: ${URL_SHORTENER_AUTH_GOOGLE_CLIENT_ID}
+    restart: unless-stopped
+    ports:
+      - "${URL_SHORTENER_HTTP_PORT}:80"
+    depends_on:
+      write-service:
+        condition: service_healthy
+      redirect-service:
+        condition: service_healthy
+      analytics-service:
+        condition: service_healthy
+    networks:
+      - url-shortener-net
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost/health 2>/dev/null | grep -q 'ok' || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+
+networks:
+  url-shortener-net:
+    driver: bridge

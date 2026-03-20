@@ -10,9 +10,13 @@ const frontendPort = getPort('URL_SHORTENER_FRONTEND_PORT', 13000)
 const writeServicePort = getPort('URL_SHORTENER_WRITE_SERVICE_PORT', 18082)
 const analyticsServicePort = getPort('URL_SHORTENER_ANALYTICS_SERVICE_PORT', 18083)
 const redirectServicePort = getPort('URL_SHORTENER_REDIRECT_SERVICE_PORT', 18080)
+const frontendBasePath = normalizeBasePath(
+  process.env.URL_SHORTENER_FRONTEND_BASE_PATH ?? '/',
+)
 
 export default defineConfig({
   plugins: [react()],
+  base: frontendBasePath,
   envPrefix: ['VITE_', 'URL_SHORTENER_'],
   server: {
     port: frontendPort,
@@ -84,4 +88,13 @@ function getPort(key: string, fallback: number) {
 
   const parsed = Number.parseInt(rawValue, 10)
   return Number.isFinite(parsed) ? parsed : fallback
+}
+
+function normalizeBasePath(value: string) {
+  if (!value || value === '/') {
+    return '/'
+  }
+
+  const withLeadingSlash = value.startsWith('/') ? value : `/${value}`
+  return withLeadingSlash.endsWith('/') ? withLeadingSlash : `${withLeadingSlash}/`
 }

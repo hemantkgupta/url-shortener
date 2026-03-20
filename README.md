@@ -2,6 +2,18 @@
 
 A high-throughput URL shortener built as a Gradle multi-module Java project, designed to handle 5 000+ redirects/second with p99 latency under 50 ms on the hot redirect path.
 
+## Deployment Layout
+
+Deployment work is being organized into three layers:
+
+- local development
+- shared single-VM deployment
+- provider-specific provisioning for GCP, Hetzner, Oracle, and AWS
+
+See:
+- [deployment plan](/Users/hemantkgupta/offline/url-shortener/docs/deployment-plan.md)
+- [deploy index](/Users/hemantkgupta/offline/url-shortener/deploy/README.md)
+
 ---
 
 ## Architecture
@@ -76,20 +88,16 @@ Install nvm: `curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/inst
 git clone https://github.com/your-org/url-shortener.git
 cd url-shortener
 
-# 2. Start all infrastructure containers
-make infra-up
+# 2. Optional: review deploy/local/env.example and update ~/.url-shortener-local-dev
 
-# 3. Wait ~30 s for ScyllaDB and ClickHouse to be ready, then initialise schemas
-make init-db
+# 3. Start the full local stack
+bash ./deploy/local/run.sh --npm-install
+```
 
-# 4. Start all Spring Boot services
-make services-start
+Compatibility wrapper:
 
-# 5. Install frontend dependencies and start the dev server
-cd frontend && npm install && npm run dev
-
-# 6. Open the app
-open http://localhost:5173
+```bash
+bash ./run-local.sh --npm-install
 ```
 
 ---
@@ -98,12 +106,12 @@ open http://localhost:5173
 
 | Service             | URL                        | Notes                          |
 |---------------------|----------------------------|--------------------------------|
-| redirect-service    | http://localhost:8080      | GET /{key} hot redirect path   |
-| write-service       | http://localhost:8082      | POST/DELETE URL management     |
-| key-generation-service | http://localhost:8081   | Internal KGS (etcd-backed)     |
-| analytics-service   | http://localhost:8083      | Analytics REST API             |
-| Frontend            | http://localhost:5173      | React + Vite dev server        |
-| SigNoz              | http://localhost:3301      | Distributed tracing & metrics  |
+| redirect-service    | http://localhost:18080     | GET /{key} hot redirect path   |
+| write-service       | http://localhost:18082     | POST/DELETE URL management     |
+| key-generation-service | http://localhost:18081  | Internal KGS (etcd-backed)     |
+| analytics-service   | http://localhost:18083     | Analytics REST API             |
+| Frontend            | http://localhost:13000     | React + Vite dev server        |
+| SigNoz              | http://localhost:3301      | Manual full-infra profile only |
 | Kafka UI            | http://localhost:9080      | Browse topics and messages     |
 | RedisInsight        | http://localhost:8001      | Redis browser and profiler     |
 

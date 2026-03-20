@@ -2,6 +2,7 @@
 
 interface ImportMetaEnv {
   readonly URL_SHORTENER_AUTH_GOOGLE_CLIENT_ID?: string
+  readonly URL_SHORTENER_FRONTEND_BASE_PATH?: string
   readonly VITE_GOOGLE_CLIENT_ID?: string
 }
 
