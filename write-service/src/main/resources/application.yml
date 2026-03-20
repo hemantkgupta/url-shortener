@@ -35,6 +35,8 @@ write:
     port: ${CASSANDRA_PORT:9042}
     keyspace: ${CASSANDRA_KEYSPACE:url_shortener}
     datacenter: ${CASSANDRA_DATACENTER:datacenter1}
+    schema-replication-strategy: ${CASSANDRA_SCHEMA_REPLICATION_STRATEGY:SimpleStrategy}
+    schema-replication-factor: ${CASSANDRA_SCHEMA_REPLICATION_FACTOR:1}
   kafka:
     topic:
       url-created: url.created

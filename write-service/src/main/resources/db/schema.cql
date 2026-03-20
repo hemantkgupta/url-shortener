@@ -4,14 +4,8 @@
 -- All DDL statements use IF NOT EXISTS for idempotency.
 -- ============================================================
 
-CREATE KEYSPACE IF NOT EXISTS url_shortener
-  WITH replication = {'class': 'NetworkTopologyStrategy', 'datacenter1': 3}
-  AND durable_writes = true;
-
-USE url_shortener;
-
 -- Primary mapping: short key → long URL
-CREATE TABLE IF NOT EXISTS url_mapping (
+CREATE TABLE IF NOT EXISTS __KEYSPACE__.url_mapping (
     short_key  text PRIMARY KEY,
     long_url   text,
     user_id    bigint,
@@ -22,7 +16,7 @@ CREATE TABLE IF NOT EXISTS url_mapping (
   AND compaction = {'class': 'LeveledCompactionStrategy'};
 
 -- Alias / vanity-key mapping
-CREATE TABLE IF NOT EXISTS alias_mapping (
+CREATE TABLE IF NOT EXISTS __KEYSPACE__.alias_mapping (
     alias      text PRIMARY KEY,
     short_key  text,
     user_id    bigint,
@@ -31,7 +25,7 @@ CREATE TABLE IF NOT EXISTS alias_mapping (
 
 -- Per-user lookup table for analytics / management UI.
 -- Maintained by the write-service alongside the primary url_mapping table.
-CREATE TABLE IF NOT EXISTS url_mapping_by_user (
+CREATE TABLE IF NOT EXISTS __KEYSPACE__.url_mapping_by_user (
     user_id    bigint,
     created_at timestamp,
     short_key  text,

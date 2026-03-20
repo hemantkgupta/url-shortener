@@ -261,6 +261,8 @@ public class WriteServiceProperties {
         private int port = 9042;
         private String keyspace = "url_shortener";
         private String datacenter = "datacenter1";
+        private String schemaReplicationStrategy = "SimpleStrategy";
+        private int schemaReplicationFactor = 1;
 
         public String getContactPoints() {
             return contactPoints;
@@ -292,6 +294,22 @@ public class WriteServiceProperties {
 
         public void setDatacenter(String datacenter) {
             this.datacenter = datacenter;
+        }
+
+        public String getSchemaReplicationStrategy() {
+            return schemaReplicationStrategy;
+        }
+
+        public void setSchemaReplicationStrategy(String schemaReplicationStrategy) {
+            this.schemaReplicationStrategy = schemaReplicationStrategy;
+        }
+
+        public int getSchemaReplicationFactor() {
+            return schemaReplicationFactor;
+        }
+
+        public void setSchemaReplicationFactor(int schemaReplicationFactor) {
+            this.schemaReplicationFactor = schemaReplicationFactor;
         }
     }
 
