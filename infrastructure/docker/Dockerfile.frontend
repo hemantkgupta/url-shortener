@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1.7
 # =============================================================================
 # Dockerfile.frontend — React SPA
 # =============================================================================
@@ -20,7 +21,8 @@ ENV URL_SHORTENER_AUTH_GOOGLE_CLIENT_ID=${URL_SHORTENER_AUTH_GOOGLE_CLIENT_ID}
 
 # Install dependencies first (layer-cached unless package*.json changes)
 COPY frontend/package*.json ./
-RUN npm ci --prefer-offline
+RUN --mount=type=cache,target=/root/.npm \
+    npm ci --prefer-offline
 
 # Copy the rest of the frontend source and build
 COPY frontend/ .

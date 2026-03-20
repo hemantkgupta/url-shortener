@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1.7
 # =============================================================================
 # Dockerfile.analytics — Analytics Service
 # =============================================================================
@@ -12,13 +13,15 @@
 FROM gradle:8.10-jdk21 AS builder
 
 WORKDIR /workspace
+ENV GRADLE_USER_HOME=/home/gradle/.gradle
 
 # Copy the full repository so Gradle sees the real multi-module layout.
 COPY . .
 RUN chmod +x gradlew
 
 # Build the bootJar for analytics-service only
-RUN ./gradlew :analytics-service:bootJar --no-daemon --info \
+RUN --mount=type=cache,target=/home/gradle/.gradle \
+    ./gradlew :analytics-service:bootJar --no-daemon --info \
     && ls -lh analytics-service/build/libs/
 
 # ---------------------------------------------------------------------------

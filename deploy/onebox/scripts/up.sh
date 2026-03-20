@@ -20,6 +20,23 @@ source "${ENV_FILE}"
 set +a
 
 DATA_ROOT="${URL_SHORTENER_DATA_ROOT:-/data/server/url-shortener}"
+FORCE_BUILD=0
+COMPOSE_SERVICES=()
+BUILDABLE_SERVICES=(
+  "key-generation-service"
+  "write-service"
+  "redirect-service"
+  "analytics-service"
+  "gateway"
+)
+
+for arg in "$@"; do
+  if [[ "${arg}" == "--build" ]]; then
+    FORCE_BUILD=1
+  else
+    COMPOSE_SERVICES+=("${arg}")
+  fi
+done
 
 DATA_DIRS=(
   "${DATA_ROOT}/scylla"
@@ -42,7 +59,34 @@ fi
 
 bash "${SCRIPT_DIR}/doctor.sh"
 
+NEEDS_BUILD="${FORCE_BUILD}"
+if [[ "${NEEDS_BUILD}" -eq 0 ]]; then
+  TARGET_SERVICES=("${COMPOSE_SERVICES[@]}")
+  if [[ ${#TARGET_SERVICES[@]} -eq 0 ]]; then
+    TARGET_SERVICES=("${BUILDABLE_SERVICES[@]}")
+  fi
+
+  for service in "${TARGET_SERVICES[@]}"; do
+    case " ${BUILDABLE_SERVICES[*]} " in
+      *" ${service} "*)
+        if ! docker compose --env-file "${ENV_FILE}" -f "${COMPOSE_FILE}" images -q "${service}" | grep -q '[^[:space:]]'; then
+          NEEDS_BUILD=1
+          break
+        fi
+        ;;
+    esac
+  done
+fi
+
+UP_ARGS=(-d)
+if [[ "${NEEDS_BUILD}" -eq 1 ]]; then
+  echo "Building updated or missing images before startup..."
+  UP_ARGS+=(--build)
+else
+  echo "Reusing cached images. Pass --build to rebuild application images."
+fi
+
 exec docker compose \
   --env-file "${ENV_FILE}" \
   -f "${COMPOSE_FILE}" \
-  up -d --build "$@"
+  up "${UP_ARGS[@]}" "${COMPOSE_SERVICES[@]}"
