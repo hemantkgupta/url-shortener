@@ -37,6 +37,7 @@ write:
     datacenter: ${CASSANDRA_DATACENTER:datacenter1}
     schema-replication-strategy: ${CASSANDRA_SCHEMA_REPLICATION_STRATEGY:SimpleStrategy}
     schema-replication-factor: ${CASSANDRA_SCHEMA_REPLICATION_FACTOR:1}
+    schema-reset-on-incompatible-replication: ${CASSANDRA_SCHEMA_RESET_ON_INCOMPATIBLE_REPLICATION:false}
   kafka:
     topic:
       url-created: url.created

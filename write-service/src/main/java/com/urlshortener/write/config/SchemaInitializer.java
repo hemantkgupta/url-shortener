@@ -43,8 +43,7 @@ public class SchemaInitializer {
         WriteServiceProperties.Cassandra cassandra = properties.getCassandra();
         String keyspace = cassandra.getKeyspace();
 
-        cqlSession.execute(buildCreateKeyspaceStatement(cassandra));
-        cqlSession.execute(buildAlterKeyspaceStatement(cassandra));
+        ensureKeyspace(cassandra);
         log.info("Ensured keyspace exists: {}", keyspace);
 
         ClassPathResource resource = new ClassPathResource(SCHEMA_RESOURCE);
@@ -68,6 +67,29 @@ public class SchemaInitializer {
         }
 
         log.info("Schema initialisation complete — {} statements executed", executed);
+    }
+
+    private void ensureKeyspace(WriteServiceProperties.Cassandra cassandra) {
+        String createStatement = buildCreateKeyspaceStatement(cassandra);
+        cqlSession.execute(createStatement);
+
+        try {
+            cqlSession.execute(buildAlterKeyspaceStatement(cassandra));
+        } catch (RuntimeException ex) {
+            if (cassandra.isSchemaResetOnIncompatibleReplication()
+                    && isIncompatibleReplicationFlavor(ex)) {
+                log.warn(
+                        "Resetting keyspace {} due to incompatible replication flavor for one-box/local deployment",
+                        cassandra.getKeyspace());
+                cqlSession.execute(String.format(
+                        Locale.ROOT,
+                        "DROP KEYSPACE IF EXISTS %s",
+                        cassandra.getKeyspace()));
+                cqlSession.execute(createStatement);
+                return;
+            }
+            throw ex;
+        }
     }
 
     private String buildCreateKeyspaceStatement(WriteServiceProperties.Cassandra cassandra) {
@@ -101,5 +123,17 @@ public class SchemaInitializer {
                 Locale.ROOT,
                 "{'class': 'SimpleStrategy', 'replication_factor': %d}",
                 cassandra.getSchemaReplicationFactor());
+    }
+
+    private boolean isIncompatibleReplicationFlavor(Throwable throwable) {
+        Throwable current = throwable;
+        while (current != null) {
+            String message = current.getMessage();
+            if (message != null && message.contains("Cannot alter replication strategy vnode/tablets flavor")) {
+                return true;
+            }
+            current = current.getCause();
+        }
+        return false;
     }
 }

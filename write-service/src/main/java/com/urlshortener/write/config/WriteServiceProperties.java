@@ -263,6 +263,7 @@ public class WriteServiceProperties {
         private String datacenter = "datacenter1";
         private String schemaReplicationStrategy = "SimpleStrategy";
         private int schemaReplicationFactor = 1;
+        private boolean schemaResetOnIncompatibleReplication = false;
 
         public String getContactPoints() {
             return contactPoints;
@@ -310,6 +311,14 @@ public class WriteServiceProperties {
 
         public void setSchemaReplicationFactor(int schemaReplicationFactor) {
             this.schemaReplicationFactor = schemaReplicationFactor;
+        }
+
+        public boolean isSchemaResetOnIncompatibleReplication() {
+            return schemaResetOnIncompatibleReplication;
+        }
+
+        public void setSchemaResetOnIncompatibleReplication(boolean schemaResetOnIncompatibleReplication) {
+            this.schemaResetOnIncompatibleReplication = schemaResetOnIncompatibleReplication;
         }
     }
 
