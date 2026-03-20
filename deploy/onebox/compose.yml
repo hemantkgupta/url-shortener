@@ -144,6 +144,7 @@ services:
       REDIS_ADDRESS: redis://redis:6379
       KGS_REGION: onebox
       JAVA_TOOL_OPTIONS: -Xms256m -Xmx768m
+      OTEL_SDK_DISABLED: "true"
     depends_on:
       etcd:
         condition: service_healthy
@@ -177,6 +178,7 @@ services:
       OWN_DOMAIN: ${URL_SHORTENER_PUBLIC_DOMAIN}
       URL_SHORTENER_PUBLIC_SCHEME: ${URL_SHORTENER_PUBLIC_SCHEME}
       JAVA_TOOL_OPTIONS: -Xms256m -Xmx1024m
+      OTEL_SDK_DISABLED: "true"
     depends_on:
       scylladb:
         condition: service_healthy
@@ -212,6 +214,7 @@ services:
       OWN_DOMAIN: ${URL_SHORTENER_PUBLIC_DOMAIN}
       IP_DAILY_SALT: ${URL_SHORTENER_IP_DAILY_SALT:-change-me}
       JAVA_TOOL_OPTIONS: -Xms256m -Xmx1024m
+      OTEL_SDK_DISABLED: "true"
     depends_on:
       scylladb:
         condition: service_healthy
@@ -247,6 +250,7 @@ services:
       SCYLLA_CONTACT_POINTS: scylladb
       SCYLLA_DATACENTER: datacenter1
       JAVA_TOOL_OPTIONS: -Xms512m -Xmx1536m
+      OTEL_SDK_DISABLED: "true"
     depends_on:
       scylladb:
         condition: service_healthy
