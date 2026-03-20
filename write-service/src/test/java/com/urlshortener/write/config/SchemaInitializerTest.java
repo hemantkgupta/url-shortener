@@ -36,16 +36,20 @@ class SchemaInitializerTest {
         initializer.initSchema();
 
         ArgumentCaptor<String> statements = ArgumentCaptor.forClass(String.class);
-        verify(cqlSession, times(4)).execute(statements.capture());
+        verify(cqlSession, times(5)).execute(statements.capture());
 
         List<String> executed = statements.getAllValues();
         assertThat(executed.get(0))
                 .contains("CREATE KEYSPACE IF NOT EXISTS url_shortener")
                 .contains("'class': 'SimpleStrategy'")
                 .contains("'replication_factor': 1");
-        assertThat(executed.get(1)).contains("CREATE TABLE IF NOT EXISTS url_shortener.url_mapping");
-        assertThat(executed.get(2)).contains("CREATE TABLE IF NOT EXISTS url_shortener.alias_mapping");
-        assertThat(executed.get(3)).contains("CREATE TABLE IF NOT EXISTS url_shortener.url_mapping_by_user");
+        assertThat(executed.get(1))
+                .contains("ALTER KEYSPACE url_shortener")
+                .contains("'class': 'SimpleStrategy'")
+                .contains("'replication_factor': 1");
+        assertThat(executed.get(2)).contains("CREATE TABLE IF NOT EXISTS url_shortener.url_mapping");
+        assertThat(executed.get(3)).contains("CREATE TABLE IF NOT EXISTS url_shortener.alias_mapping");
+        assertThat(executed.get(4)).contains("CREATE TABLE IF NOT EXISTS url_shortener.url_mapping_by_user");
     }
 
     @Test
@@ -61,9 +65,14 @@ class SchemaInitializerTest {
         initializer.initSchema();
 
         ArgumentCaptor<String> statements = ArgumentCaptor.forClass(String.class);
-        verify(cqlSession, times(4)).execute(statements.capture());
+        verify(cqlSession, times(5)).execute(statements.capture());
 
         assertThat(statements.getAllValues().get(0))
+                .contains("CREATE KEYSPACE IF NOT EXISTS url_shortener")
+                .contains("'class': 'NetworkTopologyStrategy'")
+                .contains("'dc-prod': 3");
+        assertThat(statements.getAllValues().get(1))
+                .contains("ALTER KEYSPACE url_shortener")
                 .contains("'class': 'NetworkTopologyStrategy'")
                 .contains("'dc-prod': 3");
     }

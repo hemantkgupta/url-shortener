@@ -44,6 +44,7 @@ public class SchemaInitializer {
         String keyspace = cassandra.getKeyspace();
 
         cqlSession.execute(buildCreateKeyspaceStatement(cassandra));
+        cqlSession.execute(buildAlterKeyspaceStatement(cassandra));
         log.info("Ensured keyspace exists: {}", keyspace);
 
         ClassPathResource resource = new ClassPathResource(SCHEMA_RESOURCE);
@@ -70,27 +71,35 @@ public class SchemaInitializer {
     }
 
     private String buildCreateKeyspaceStatement(WriteServiceProperties.Cassandra cassandra) {
-        String strategy = cassandra.getSchemaReplicationStrategy();
-        String keyspace = cassandra.getKeyspace();
+        return String.format(
+                Locale.ROOT,
+                "CREATE KEYSPACE IF NOT EXISTS %s WITH replication = %s AND durable_writes = true",
+                cassandra.getKeyspace(),
+                buildReplicationClause(cassandra));
+    }
 
-        String replicationClause;
+    private String buildAlterKeyspaceStatement(WriteServiceProperties.Cassandra cassandra) {
+        return String.format(
+                Locale.ROOT,
+                "ALTER KEYSPACE %s WITH replication = %s AND durable_writes = true",
+                cassandra.getKeyspace(),
+                buildReplicationClause(cassandra));
+    }
+
+    private String buildReplicationClause(WriteServiceProperties.Cassandra cassandra) {
+        String strategy = cassandra.getSchemaReplicationStrategy();
+
         if ("NetworkTopologyStrategy".equalsIgnoreCase(strategy)) {
-            replicationClause = String.format(
+            return String.format(
                     Locale.ROOT,
                     "{'class': 'NetworkTopologyStrategy', '%s': %d}",
                     cassandra.getDatacenter(),
-                    cassandra.getSchemaReplicationFactor());
-        } else {
-            replicationClause = String.format(
-                    Locale.ROOT,
-                    "{'class': 'SimpleStrategy', 'replication_factor': %d}",
                     cassandra.getSchemaReplicationFactor());
         }
 
         return String.format(
                 Locale.ROOT,
-                "CREATE KEYSPACE IF NOT EXISTS %s WITH replication = %s AND durable_writes = true",
-                keyspace,
-                replicationClause);
+                "{'class': 'SimpleStrategy', 'replication_factor': %d}",
+                cassandra.getSchemaReplicationFactor());
     }
 }
