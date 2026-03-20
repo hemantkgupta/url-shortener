@@ -41,6 +41,14 @@ systemctl start docker
 
 mkdir -p /data/server/url-shortener
 chmod 755 /data/server/url-shortener
+mkdir -p \
+  /data/server/url-shortener/scylla \
+  /data/server/url-shortener/redis \
+  /data/server/url-shortener/etcd \
+  /data/server/url-shortener/kafka \
+  /data/server/url-shortener/clickhouse \
+  /data/server/url-shortener/clickhouse-logs
+chmod -R a+rwX /data/server/url-shortener
 
 DEFAULT_USER="${SUDO_USER:-}"
 if [[ -n "${DEFAULT_USER}" && "${DEFAULT_USER}" != "root" ]]; then

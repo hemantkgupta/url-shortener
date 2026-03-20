@@ -21,13 +21,24 @@ set +a
 
 DATA_ROOT="${URL_SHORTENER_DATA_ROOT:-/data/server/url-shortener}"
 
-mkdir -p \
-  "${DATA_ROOT}/scylla" \
-  "${DATA_ROOT}/redis" \
-  "${DATA_ROOT}/etcd" \
-  "${DATA_ROOT}/kafka" \
-  "${DATA_ROOT}/clickhouse" \
+DATA_DIRS=(
+  "${DATA_ROOT}/scylla"
+  "${DATA_ROOT}/redis"
+  "${DATA_ROOT}/etcd"
+  "${DATA_ROOT}/kafka"
+  "${DATA_ROOT}/clickhouse"
   "${DATA_ROOT}/clickhouse-logs"
+)
+
+mkdir -p "${DATA_DIRS[@]}"
+
+# One-box bind mounts are shared across multiple images with different runtime UIDs.
+# Relax permissions so services can initialize their own on-disk state without host-specific UID tuning.
+CHMOD_CMD=(chmod -R a+rwX)
+if [[ "${EUID}" -ne 0 ]] && command -v sudo >/dev/null 2>&1; then
+  CHMOD_CMD=(sudo chmod -R a+rwX)
+fi
+"${CHMOD_CMD[@]}" "${DATA_DIRS[@]}"
 
 bash "${SCRIPT_DIR}/doctor.sh"
 
