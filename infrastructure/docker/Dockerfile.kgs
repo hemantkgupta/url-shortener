@@ -13,18 +13,9 @@ FROM gradle:8.10-jdk21 AS builder
 
 WORKDIR /workspace
 
-# Copy Gradle wrapper and build metadata first (cached layer)
-COPY gradlew ./
-COPY gradle/ gradle/
-COPY settings.gradle.kts ./
-COPY build.gradle.kts ./
-
-# Copy convention plugin sources (buildSrc)
-COPY buildSrc/ buildSrc/
-
-# Copy only the modules needed by key-generation-service
-COPY core/ core/
-COPY key-generation-service/ key-generation-service/
+# Copy the full repository so Gradle sees the real multi-module layout.
+COPY . .
+RUN chmod +x gradlew
 
 # Build the bootJar for key-generation-service only
 RUN ./gradlew :key-generation-service:bootJar --no-daemon --info \

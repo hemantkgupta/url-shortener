@@ -1,0 +1,14 @@
+.git
+.gitignore
+.claude
+.idea
+.DS_Store
+logs
+
+**/build
+**/.gradle
+**/node_modules
+**/dist
+
+deploy/onebox/.env
+frontend/.env.local
