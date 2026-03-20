@@ -41,6 +41,8 @@ dependencies {
 
     // ClickHouse — OLAP store for historical analytics
     implementation(libs.clickhouse.jdbc)
+    implementation(libs.apache.httpclient5)
+    implementation(libs.apache.httpcore5)
 
     // Observability
     implementation(libs.bundles.observability)

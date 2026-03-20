@@ -41,6 +41,7 @@ guava                   = "33.3.1-jre"
 commons-lang3           = "3.17.0"
 slf4j                   = "2.0.16"
 logback                 = "1.5.8"
+httpcomponents5         = "5.3.1"
 
 # Build plugins
 gradle-versions-plugin  = "0.51.0"
@@ -121,6 +122,8 @@ guava                           = { module = "com.google.guava:guava", version.r
 commons-lang3                   = { module = "org.apache.commons:commons-lang3", version.ref = "commons-lang3" }
 slf4j-api                       = { module = "org.slf4j:slf4j-api", version.ref = "slf4j" }
 logback-classic                 = { module = "ch.qos.logback:logback-classic", version.ref = "logback" }
+apache-httpclient5              = { module = "org.apache.httpcomponents.client5:httpclient5", version.ref = "httpcomponents5" }
+apache-httpcore5                = { module = "org.apache.httpcomponents.core5:httpcore5", version.ref = "httpcomponents5" }
 
 [bundles]
 spring-web-base     = ["spring-boot-starter-web", "spring-boot-starter-actuator", "spring-boot-starter-validation"]
