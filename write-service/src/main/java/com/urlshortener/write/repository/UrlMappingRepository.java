@@ -9,6 +9,7 @@ import com.urlshortener.core.domain.UrlMapping;
 import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.annotation.DependsOn;
 import org.springframework.stereotype.Repository;
 
 import java.time.Instant;
@@ -26,6 +27,7 @@ import java.util.Optional;
  * for converting them to appropriate HTTP responses via the exception handler.
  */
 @Repository
+@DependsOn("schemaInitializer")
 public class UrlMappingRepository {
 
     private static final Logger log = LoggerFactory.getLogger(UrlMappingRepository.class);
