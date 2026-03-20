@@ -7,6 +7,9 @@ spring:
   threads:
     virtual:
       enabled: true
+  data:
+    redis:
+      url: ${REDIS_ADDRESS:redis://localhost:6379}
 
 kgs:
   etcd:
