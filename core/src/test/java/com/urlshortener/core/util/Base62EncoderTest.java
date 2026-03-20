@@ -35,6 +35,17 @@ class Base62EncoderTest {
     }
 
     @Test
+    @DisplayName("toShortKey scatters early counters across visible prefixes")
+    void toShortKeyScattersEarlyCountersAcrossPrefixes() {
+        Set<String> prefixes = new HashSet<>();
+        for (long counter = 0; counter < 64; counter++) {
+            prefixes.add(Base62Encoder.toShortKey(counter).substring(0, 4));
+        }
+
+        assertThat(prefixes).hasSizeGreaterThan(8);
+    }
+
+    @Test
     @DisplayName("encode of the 8-character floor starts at 10000000")
     void encodeFloorStartsAtEightCharacterRange() {
         assertThat(Base62Encoder.encode(Base62Encoder.minFixedLengthValue(Base62Encoder.KEY_LENGTH)))

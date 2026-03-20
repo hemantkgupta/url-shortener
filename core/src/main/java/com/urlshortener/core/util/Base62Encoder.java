@@ -19,9 +19,9 @@ package com.urlshortener.core.util;
  * <h2>Generated public keys</h2>
  * {@link #toShortKey(long)} maps a raw monotonic counter into the public
  * 8-character Base62 range {@code [10000000, ZZZZZZZZ]} via a deterministic
- * permutation.  This keeps all generated keys a fixed length, avoids leading
- * zero padding, and prevents the public key from exposing the raw counter
- * directly.
+ * cycle-walked permutation.  This keeps all generated keys a fixed length,
+ * avoids leading zero padding, and prevents the public key from exposing the
+ * raw counter directly.
  *
  * <h2>Thread safety</h2>
  * All methods are stateless and therefore inherently thread-safe.
@@ -57,20 +57,31 @@ public final class Base62Encoder {
     private static final long SHORT_KEY_SPACE = maxEncodableValue() - SHORT_KEY_FLOOR + 1;
 
     /**
-     * Multiplier for the public-key permutation.
+     * Permutation domain size for public-key generation.
      *
-     * <p>Must be coprime to {@link #SHORT_KEY_SPACE} so the mapping remains a
-     * bijection over the entire 8-character public range.
+     * <p>We permute inside a 48-bit domain (2^48 ≈ 281 trillion) and then
+     * cycle-walk until the result falls inside the usable 8-character Base62
+     * public range.  That yields a bijection over {@link #SHORT_KEY_SPACE}
+     * while scattering early adjacent counters much more evenly across visible
+     * prefixes than a simple affine transform in Base62 space.
      */
-    private static final long SHORT_KEY_MULTIPLIER = 40_009L;
+    private static final int SHORT_KEY_PERMUTATION_BITS = 48;
+    private static final long SHORT_KEY_PERMUTATION_MASK = (1L << SHORT_KEY_PERMUTATION_BITS) - 1;
 
-    /** Additive shift for the public-key permutation. */
-    private static final long SHORT_KEY_OFFSET = 13_579_246_801L;
+    /**
+     * Odd multiplier for the 48-bit affine permutation.
+     *
+     * <p>Oddness is required so the mapping stays bijective modulo 2^48.
+     */
+    private static final long SHORT_KEY_MULTIPLIER = 0x476D1CE4E5B9L;
+
+    /** Additive shift for the 48-bit affine permutation. */
+    private static final long SHORT_KEY_OFFSET = 0x94D049BB1331L;
 
     static {
-        if (gcd(SHORT_KEY_MULTIPLIER, SHORT_KEY_SPACE) != 1L) {
+        if ((SHORT_KEY_MULTIPLIER & 1L) == 0L) {
             throw new ExceptionInInitializerError(
-                    "SHORT_KEY_MULTIPLIER must be coprime to SHORT_KEY_SPACE");
+                    "SHORT_KEY_MULTIPLIER must be odd for a 48-bit permutation");
         }
     }
 
@@ -237,9 +248,10 @@ public final class Base62Encoder {
     /**
      * Converts a raw monotonic counter into a public 8-character short key.
      *
-     * <p>The mapping is a deterministic affine permutation over the exact
-     * 8-character Base62 range {@code [10000000, ZZZZZZZZ]}.  That gives three
-     * properties that the generated public URL key needs:
+     * <p>The mapping is a deterministic cycle-walked affine permutation over a
+     * 48-bit domain, projected onto the exact 8-character Base62 public range
+     * {@code [10000000, ZZZZZZZZ]}.  That gives three properties that the
+     * generated public URL key needs:
      * <ul>
      *   <li>exactly 8 Base62 characters, every time</li>
      *   <li>no leading-zero padding such as {@code 00000NPc}</li>
@@ -247,7 +259,9 @@ public final class Base62Encoder {
      * </ul>
      *
      * <p>This permutation is intentionally lightweight and deterministic for
-     * distributed services.  It is not a cryptographic construction.
+     * distributed services.  It is not a cryptographic construction, but it
+     * does scatter adjacent counters much more uniformly across visible key
+     * prefixes than a direct sequential mapping.
      *
      * @param counter raw monotonic counter value
      * @return exactly 8 Base62 characters in the public key range
@@ -266,7 +280,7 @@ public final class Base62Encoder {
                     + (SHORT_KEY_SPACE - 1) + ")");
         }
 
-        long permuted = (counter * SHORT_KEY_MULTIPLIER + SHORT_KEY_OFFSET) % SHORT_KEY_SPACE;
+        long permuted = permuteShortKeySpace(counter);
         return encode(SHORT_KEY_FLOOR + permuted);
     }
 
@@ -298,15 +312,16 @@ public final class Base62Encoder {
 
     // ── Private helpers ───────────────────────────────────────────────────────
 
-    private static long gcd(long a, long b) {
-        long x = Math.abs(a);
-        long y = Math.abs(b);
-        while (y != 0L) {
-            long next = x % y;
-            x = y;
-            y = next;
-        }
-        return x;
+    private static long permuteShortKeySpace(long counter) {
+        long candidate = counter;
+        do {
+            candidate = permute48BitDomain(candidate);
+        } while (candidate >= SHORT_KEY_SPACE);
+        return candidate;
+    }
+
+    private static long permute48BitDomain(long value) {
+        return (value * SHORT_KEY_MULTIPLIER + SHORT_KEY_OFFSET) & SHORT_KEY_PERMUTATION_MASK;
     }
 
     private static int[] buildReverseTable() {
