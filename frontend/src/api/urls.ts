@@ -10,14 +10,14 @@ import type {
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
-function isoDateNDaysAgo(n: number): string {
+function isoDateTimeNDaysAgo(n: number): string {
   const d = new Date()
   d.setDate(d.getDate() - n)
-  return d.toISOString().split('T')[0]
+  return d.toISOString()
 }
 
-function todayIso(): string {
-  return new Date().toISOString().split('T')[0]
+function nowIsoDateTime(): string {
+  return new Date().toISOString()
 }
 
 // ── Shorten URL ──────────────────────────────────────────────────────────────
@@ -53,8 +53,8 @@ export function useAnalytics(shortKey: string, enabled: boolean) {
   return useQuery<AnalyticsResponse, ApiError>({
     queryKey: ['analytics', shortKey],
     queryFn: async () => {
-      const from = isoDateNDaysAgo(30)
-      const to = todayIso()
+      const from = isoDateTimeNDaysAgo(30)
+      const to = nowIsoDateTime()
       const { data } = await apiClient.get<AnalyticsResponse>(
         `/api/analytics/v1/urls/${shortKey}/analytics`,
         { params: { from, to } },
