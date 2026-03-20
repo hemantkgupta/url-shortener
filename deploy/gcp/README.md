@@ -61,5 +61,8 @@ bash ./deploy/onebox/scripts/doctor.sh
 
 After bootstrap:
 1. copy `deploy/onebox/.env.example` to `deploy/onebox/.env`
-2. set the real domain and Google client ID values
+2. for the first raw-IP deployment, set:
+   - `URL_SHORTENER_PUBLIC_DOMAIN=35.207.199.142`
+   - `URL_SHORTENER_PUBLIC_SCHEME=http`
+   - `URL_SHORTENER_AUTH_GOOGLE_CLIENT_ID=<your-client-id>`
 3. run `bash ./deploy/onebox/scripts/up.sh`

@@ -24,6 +24,7 @@ spring:
 write:
   kgs-base-url: ${KGS_BASE_URL:http://localhost:${URL_SHORTENER_KEY_GENERATION_SERVICE_PORT:8081}}
   own-domain: ${OWN_DOMAIN:localhost}
+  public-scheme: ${URL_SHORTENER_PUBLIC_SCHEME:}
   security:
     google:
       issuer-uri: ${GOOGLE_ISSUER_URI:https://accounts.google.com}

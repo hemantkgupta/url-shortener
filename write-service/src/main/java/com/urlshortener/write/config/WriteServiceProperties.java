@@ -25,6 +25,14 @@ public class WriteServiceProperties {
      */
     private String ownDomain = "localhost";
 
+    /**
+     * Explicit public scheme override for generated short URLs.
+     *
+     * <p>When blank, the service falls back to the existing localhost-aware logic:
+     * localhost/127.0.0.1/0.0.0.0 => http, everything else => https.
+     */
+    private String publicScheme = "";
+
     @NestedConfigurationProperty
     private Kafka kafka = new Kafka();
 
@@ -59,6 +67,14 @@ public class WriteServiceProperties {
 
     public void setOwnDomain(String ownDomain) {
         this.ownDomain = ownDomain;
+    }
+
+    public String getPublicScheme() {
+        return publicScheme;
+    }
+
+    public void setPublicScheme(String publicScheme) {
+        this.publicScheme = publicScheme;
     }
 
     public Kafka getKafka() {

@@ -175,6 +175,7 @@ services:
       CASSANDRA_DATACENTER: datacenter1
       KGS_BASE_URL: http://key-generation-service:8081
       OWN_DOMAIN: ${URL_SHORTENER_PUBLIC_DOMAIN}
+      URL_SHORTENER_PUBLIC_SCHEME: ${URL_SHORTENER_PUBLIC_SCHEME}
       JAVA_TOOL_OPTIONS: -Xms256m -Xmx1024m
     depends_on:
       scylladb:

@@ -204,8 +204,17 @@ public class WriteService {
 
     private String buildShortUrl(String shortKey) {
         String domain = properties.getOwnDomain();
-        String scheme = usesHttpScheme(domain) ? "http" : "https";
+        String scheme = resolvePublicScheme(domain);
         return scheme + "://" + domain + "/" + shortKey;
+    }
+
+    private String resolvePublicScheme(String domain) {
+        String explicitScheme = properties.getPublicScheme();
+        if (explicitScheme != null && !explicitScheme.isBlank()) {
+            return explicitScheme;
+        }
+
+        return usesHttpScheme(domain) ? "http" : "https";
     }
 
     private boolean usesHttpScheme(String domain) {
