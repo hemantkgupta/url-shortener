@@ -20,7 +20,7 @@ COPY . .
 RUN chmod +x gradlew
 
 # Build the bootJar for key-generation-service only
-RUN --mount=type=cache,target=/home/gradle/.gradle \
+RUN --mount=type=cache,target=/home/gradle/.gradle,sharing=locked \
     ./gradlew :key-generation-service:bootJar --no-daemon --info \
     && ls -lh key-generation-service/build/libs/
 

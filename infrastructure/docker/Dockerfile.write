@@ -20,7 +20,7 @@ COPY . .
 RUN chmod +x gradlew
 
 # Build the bootJar for write-service only
-RUN --mount=type=cache,target=/home/gradle/.gradle \
+RUN --mount=type=cache,target=/home/gradle/.gradle,sharing=locked \
     ./gradlew :write-service:bootJar --no-daemon --info \
     && ls -lh write-service/build/libs/
 

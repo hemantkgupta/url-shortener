@@ -21,7 +21,7 @@ ENV URL_SHORTENER_AUTH_GOOGLE_CLIENT_ID=${URL_SHORTENER_AUTH_GOOGLE_CLIENT_ID}
 
 # Install dependencies first (layer-cached unless package*.json changes)
 COPY frontend/package*.json ./
-RUN --mount=type=cache,target=/root/.npm \
+RUN --mount=type=cache,target=/root/.npm,sharing=locked \
     npm ci --prefer-offline
 
 # Copy the rest of the frontend source and build

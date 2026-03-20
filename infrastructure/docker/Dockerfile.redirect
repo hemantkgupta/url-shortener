@@ -20,7 +20,7 @@ COPY . .
 RUN chmod +x gradlew
 
 # Build the bootJar for redirect-service only
-RUN --mount=type=cache,target=/home/gradle/.gradle \
+RUN --mount=type=cache,target=/home/gradle/.gradle,sharing=locked \
     ./gradlew :redirect-service:bootJar --no-daemon --info \
     && ls -lh redirect-service/build/libs/
 
